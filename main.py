@@ -12,13 +12,100 @@ mp_face_mesh = mp.solutions.face_mesh
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 cap = cv2.VideoCapture(0)
 
+def left_ear_algorithm(image, left_eye_indices, landmarks):
+    # left eye top indices: 0, 15, 14
+    # left eye bottom indices: 7, 8, 10
+    # left eye horizontal indices: 1, 4
+    
+    # get average height of left eye
+    left_vertical_top = [0, 15, 14]
+    left_top_coordinates = []
+    for i, idx in enumerate(left_vertical_top):
+        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+        left_top_coordinates.append((x, y))
+    
+    left_vertical_bottom = [7, 8, 10]
+    left_bottom_coordinates = []
+    for i, idx in enumerate(left_vertical_bottom):
+        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+        left_bottom_coordinates.append((x, y))
+    
+    vertical_distance_avg = float(0.0)
+    for i in range(len(left_top_coordinates)):
+        d = distance.euclidean(left_top_coordinates[i], left_bottom_coordinates[i])
+        vertical_distance_avg += d
+    vertical_distance_avg = vertical_distance_avg / 3.0
+    
+    # get width of left eye
+    left_horizontal = [1, 4]
+    left_horizontal_coordinates = []
+    for i, idx in enumerate(left_horizontal):
+        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+        left_horizontal_coordinates.append((x, y))
+        
+    horizontal_distance = distance.euclidean(left_horizontal_coordinates[0], left_horizontal_coordinates[1])
+    
+    # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
+    ear = vertical_distance_avg / horizontal_distance
+    
+    threshold = 0.1
+    if ear < threshold:
+        print("left eye is closed")
+    else:
+        print("left eye is open")
+
+def right_ear_algorithm(image, right_eye_indices, landmarks):
+    # right eye top indices: 1, 2, 3
+    # right eye bottom indices: 13, 11, 10
+    # right eye horizontal indices: 7, 6
+    
+    # get average height of right eye
+    right_vertical_top = [1, 2, 3]
+    right_top_coordinates = []
+    for i, idx in enumerate(right_vertical_top):
+        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+        right_top_coordinates.append((x, y))
+    
+    right_vertical_bottom = [13, 11, 10]
+    right_bottom_coordinates = []
+    for i, idx in enumerate(right_vertical_bottom):
+        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+        right_bottom_coordinates.append((x, y))
+    
+    vertical_distance_avg = float(0.0)
+    for i in range(len(right_top_coordinates)):
+        d = distance.euclidean(right_top_coordinates[i], right_bottom_coordinates[i])
+        vertical_distance_avg += d
+    vertical_distance_avg = vertical_distance_avg / 3.0
+    
+    # get width of right eye
+    right_horizontal = [7, 6]
+    right_horizontal_coordinates = []
+    for i, idx in enumerate(right_horizontal):
+        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+        right_horizontal_coordinates.append((x, y))
+        
+    horizontal_distance = distance.euclidean(right_horizontal_coordinates[0], right_horizontal_coordinates[1])
+    
+    # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
+    ear = vertical_distance_avg / horizontal_distance
+    
+    threshold = 0.1
+    if ear < threshold:
+        print("right eye is closed")
+    else:
+        print("right eye is open")
+    
+
 def draw_eye_box(image, eye_indices, landmarks):
+    # eye box basic settings
     color = (255, 255, 255)
     thickness = 2
     
     max_x, min_x = float('-inf'), float('inf')
     max_y, min_y = float('-inf'), float('inf')
     
+    # get max & min coordinates of eye
     for eye_index in eye_indices:
         landmark = landmarks.landmark[eye_index]
         if max_x <= landmark.x:
@@ -31,12 +118,14 @@ def draw_eye_box(image, eye_indices, landmarks):
         elif min_y > landmark.y:
             min_y = landmark.y
     
+    # set max & min coordinates of eye box
     box_max_x, box_min_x = int(max_x * image.shape[1]) + 10, int(min_x * image.shape[1]) - 10
     box_max_y, box_min_y = int(max_y * image.shape[0]) + 10, int(min_y * image.shape[0]) - 10
     
     top_left = (box_min_x, box_max_y)
     bottom_right = (box_max_x, box_min_y)
     
+    # draw eye box
     cv2.rectangle(image, top_left, bottom_right, color, thickness)
     
 with mp_face_mesh.FaceMesh(
@@ -57,7 +146,6 @@ with mp_face_mesh.FaceMesh(
         image.flags.writeable = False
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = face_mesh.process(image)
-        #print(type(results))
     
         # FACEMESH_RIGHT_EYE display the left eye on the screen
         LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
@@ -113,61 +201,10 @@ with mp_face_mesh.FaceMesh(
                     landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1, circle_radius=1),
                 )
                 
-                color = (255, 255, 255)
-                thickness = -1
-                radius = 5
-                
-                # landmark1 = face_landmarks.landmark[RIGHT_EYE_INDICES[3]]
-                # landmark2 = face_landmarks.landmark[RIGHT_EYE_INDICES[10]]
-                
-                # center1_x, center1_y = int(landmark1.x * image.shape[1]), int(landmark1.y*image.shape[0])
-                # center1 = (center1_x, center1_y)
-                
-                # center2_x, center2_y = int(landmark2.x * image.shape[1]), int(landmark2.y*image.shape[0])
-                # center2 = (center2_x, center2_y)
-                
-                # cv2.circle(image, center1, radius, color, thickness)
-                # cv2.circle(image, center2, radius, color, thickness)
-                
-                #left eye top indices: 0, 15, 14
-                #left eye bottom indices: 7, 8, 10
-                #left eye horizontal indices: 1, 4
-                
-                #right eye top indices: 1, 2, 3
-                #right eye bottom indices: 13, 11, 10
-                #right eye horizontal indices: 7, 6
-                
-                x1, y1 = face_landmarks.landmark[LEFT_EYE_INDICES[0]].x, face_landmarks.landmark[LEFT_EYE_INDICES[0]].y
-                x2, y2 = face_landmarks.landmark[LEFT_EYE_INDICES[7]].x, face_landmarks.landmark[LEFT_EYE_INDICES[7]].y
-                a = (x1, y1)
-                b = (x2, y2)
-                v1 = distance.euclidean(a, b)
-                
-                x3, y3 = face_landmarks.landmark[LEFT_EYE_INDICES[15]].x, face_landmarks.landmark[LEFT_EYE_INDICES[15]].y
-                x4, y4 = face_landmarks.landmark[LEFT_EYE_INDICES[8]].x, face_landmarks.landmark[LEFT_EYE_INDICES[8]].y
-                c = (x3, y3)
-                d = (x4, y4)
-                v2 = distance.euclidean(c, d)
-                
-                x5, y5 = face_landmarks.landmark[LEFT_EYE_INDICES[14]].x, face_landmarks.landmark[LEFT_EYE_INDICES[14]].y
-                x6, y6 = face_landmarks.landmark[LEFT_EYE_INDICES[10]].x, face_landmarks.landmark[LEFT_EYE_INDICES[10]].y
-                e = (x5, y5)
-                f = (x6, y6)
-                v3 = distance.euclidean(e, f)
-                
-                x7, y7 = face_landmarks.landmark[LEFT_EYE_INDICES[1]].x, face_landmarks.landmark[LEFT_EYE_INDICES[1]].y
-                x8, y8 = face_landmarks.landmark[LEFT_EYE_INDICES[4]].x, face_landmarks.landmark[LEFT_EYE_INDICES[4]].y
-                g = (x7, y7)
-                h = (x8, y8)
-                v4 = distance.euclidean(g, h)
-                
-                ear = (v1+v2+v3) / (3.0 * v4)
-                
-                threshold = 0.09
-                if ear < threshold:
-                    print("left eye is closed")
-                else:
-                    print("left eye is open")
+                # EAR algorithm part
+                left_ear_algorithm(image, LEFT_EYE_INDICES, face_landmarks)
+                right_ear_algorithm(image, RIGHT_EYE_INDICES, face_landmarks)
+                print("\n")
                 
                 # Draw eye boxes
                 draw_eye_box(image, LEFT_EYE_INDICES, face_landmarks)
