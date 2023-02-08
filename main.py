@@ -48,11 +48,13 @@ def left_ear_algorithm(image, left_eye_indices, landmarks):
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
     
-    threshold = 0.1
+    threshold = 0.2
     if ear < threshold:
-        print("left eye is closed")
+        # eye is closed
+        return 0
     else:
-        print("left eye is open")
+        # eye is open
+        return 1
 
 def right_ear_algorithm(image, right_eye_indices, landmarks):
     # right eye top indices: 1, 2, 3
@@ -90,17 +92,23 @@ def right_ear_algorithm(image, right_eye_indices, landmarks):
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
     
-    threshold = 0.1
+    threshold = 0.2
     if ear < threshold:
-        print("right eye is closed")
+        # eye is closed
+        return 0
     else:
-        print("right eye is open")
+        # eye is open
+        return 1
     
 
-def draw_eye_box(image, eye_indices, landmarks):
+def draw_eye_box(image, eye_indices, landmarks, eye_status):
     # eye box basic settings
     color = (255, 255, 255)
     thickness = 2
+    fontFace = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 1
+    lineType = cv2.LINE_AA
+    message = "open" if eye_status == 1 else "close"
     
     max_x, min_x = float('-inf'), float('inf')
     max_y, min_y = float('-inf'), float('inf')
@@ -122,10 +130,11 @@ def draw_eye_box(image, eye_indices, landmarks):
     box_max_x, box_min_x = int(max_x * image.shape[1]) + 10, int(min_x * image.shape[1]) - 10
     box_max_y, box_min_y = int(max_y * image.shape[0]) + 10, int(min_y * image.shape[0]) - 10
     
-    top_left = (box_min_x, box_max_y)
-    bottom_right = (box_max_x, box_min_y)
+    top_left = (box_min_x, box_min_y)
+    bottom_right = (box_max_x, box_max_y)
     
     # draw eye box
+    cv2.putText(image, message, top_left, fontFace, fontScale, color, thickness, lineType)
     cv2.rectangle(image, top_left, bottom_right, color, thickness)
     
 with mp_face_mesh.FaceMesh(
@@ -180,14 +189,25 @@ with mp_face_mesh.FaceMesh(
                     RIGHT_EYE_LANDMARKS.landmark.extend([landmark])
                 
                 # Draw borders around Face, Eyes and Lips
+                # mp_drawing.draw_landmarks(
+                #     image=image,
+                #     landmark_list=face_landmarks,
+                #     connections=mp_face_mesh.FACEMESH_CONTOURS,
+                #     landmark_drawing_spec=None,
+                #     connection_drawing_spec=mp_drawing_styles
+                #     .get_default_face_mesh_contours_style()
+                # )
+                
+                # Draw iris
                 mp_drawing.draw_landmarks(
                     image=image,
                     landmark_list=face_landmarks,
-                    connections=mp_face_mesh.FACEMESH_CONTOURS,
+                    connections=mp_face_mesh.FACEMESH_IRISES,
                     landmark_drawing_spec=None,
                     connection_drawing_spec=mp_drawing_styles
-                    .get_default_face_mesh_contours_style()
+                    .get_default_face_mesh_iris_connections_style()
                 )
+                
                 # Draw Left eye points
                 mp_drawing.draw_landmarks(
                     image=image,
@@ -202,13 +222,12 @@ with mp_face_mesh.FaceMesh(
                 )
                 
                 # EAR algorithm part
-                left_ear_algorithm(image, LEFT_EYE_INDICES, face_landmarks)
-                right_ear_algorithm(image, RIGHT_EYE_INDICES, face_landmarks)
-                print("\n")
+                left_eye_status = left_ear_algorithm(image, LEFT_EYE_INDICES, face_landmarks)
+                right_eye_status = right_ear_algorithm(image, RIGHT_EYE_INDICES, face_landmarks)
                 
                 # Draw eye boxes
-                draw_eye_box(image, LEFT_EYE_INDICES, face_landmarks)
-                draw_eye_box(image, RIGHT_EYE_INDICES, face_landmarks)
+                draw_eye_box(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
+                draw_eye_box(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
                 
             cv2.imshow('MediaPipe Face Mesh', image)
             if cv2.waitKey(5) & 0xFF == 27:
