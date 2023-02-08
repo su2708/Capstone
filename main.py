@@ -13,18 +13,50 @@ drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 cap = cv2.VideoCapture(0)
 
 def left_ear_algorithm(image, left_eye_indices, landmarks):
-    # left eye top indices: 0, 15, 14
-    # left eye bottom indices: 7, 8, 10
-    # left eye horizontal indices: 1, 4
+    # # left eye top indices: 0, 15, 14
+    # # left eye bottom indices: 7, 8, 10
+    # # left eye horizontal indices: 1, 4
+    
+    # # get average height of left eye
+    # left_vertical_top = [0, 15, 14]
+    # left_top_coordinates = []
+    # for i, idx in enumerate(left_vertical_top):
+    #     x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+    #     left_top_coordinates.append((x, y))
+    
+    # left_vertical_bottom = [7, 8, 10]
+    # left_bottom_coordinates = []
+    # for i, idx in enumerate(left_vertical_bottom):
+    #     x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+    #     left_bottom_coordinates.append((x, y))
+    
+    # vertical_distance_avg = float(0.0)
+    # for i in range(len(left_top_coordinates)):
+    #     d = distance.euclidean(left_top_coordinates[i], left_bottom_coordinates[i])
+    #     vertical_distance_avg += d
+    # vertical_distance_avg = vertical_distance_avg / 3.0
+    
+    # # get width of left eye
+    # left_horizontal = [1, 4]
+    # left_horizontal_coordinates = []
+    # for i, idx in enumerate(left_horizontal):
+    #     x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
+    #     left_horizontal_coordinates.append((x, y))
+        
+    # horizontal_distance = distance.euclidean(left_horizontal_coordinates[0], left_horizontal_coordinates[1])
+    
+    # left eye top indices: 1, 2, 3
+    # left eye bottom indices: 13, 11, 10
+    # left eye horizontal indices: 7, 6
     
     # get average height of left eye
-    left_vertical_top = [0, 15, 14]
+    left_vertical_top = [1, 2, 3]
     left_top_coordinates = []
     for i, idx in enumerate(left_vertical_top):
         x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
         left_top_coordinates.append((x, y))
     
-    left_vertical_bottom = [7, 8, 10]
+    left_vertical_bottom = [13, 11, 10]
     left_bottom_coordinates = []
     for i, idx in enumerate(left_vertical_bottom):
         x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
@@ -37,7 +69,7 @@ def left_ear_algorithm(image, left_eye_indices, landmarks):
     vertical_distance_avg = vertical_distance_avg / 3.0
     
     # get width of left eye
-    left_horizontal = [1, 4]
+    left_horizontal = [7, 6]
     left_horizontal_coordinates = []
     for i, idx in enumerate(left_horizontal):
         x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
@@ -47,28 +79,60 @@ def left_ear_algorithm(image, left_eye_indices, landmarks):
     
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
+    print("vertical avg: ", vertical_distance_avg)
+    print("horizontal: ", horizontal_distance)
+    print("ear: ", ear)
+    print("\n")
+    threshold = 0.15
+    eye_status = 0 if ear < threshold else 1
     
-    threshold = 0.05
-    if ear < threshold:
-        # eye is closed
-        return 0
-    else:
-        # eye is open
-        return 1
+    return eye_status
 
 def right_ear_algorithm(image, right_eye_indices, landmarks):
-    # right eye top indices: 1, 2, 3
-    # right eye bottom indices: 13, 11, 10
-    # right eye horizontal indices: 7, 6
+    # # right eye top indices: 1, 2, 3
+    # # right eye bottom indices: 13, 11, 10
+    # # right eye horizontal indices: 7, 6
+    
+    # # get average height of right eye
+    # right_vertical_top = [1, 2, 3]
+    # right_top_coordinates = []
+    # for i, idx in enumerate(right_vertical_top):
+    #     x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+    #     right_top_coordinates.append((x, y))
+    
+    # right_vertical_bottom = [13, 11, 10]
+    # right_bottom_coordinates = []
+    # for i, idx in enumerate(right_vertical_bottom):
+    #     x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+    #     right_bottom_coordinates.append((x, y))
+    
+    # vertical_distance_avg = float(0.0)
+    # for i in range(len(right_top_coordinates)):
+    #     d = distance.euclidean(right_top_coordinates[i], right_bottom_coordinates[i])
+    #     vertical_distance_avg += d
+    # vertical_distance_avg = vertical_distance_avg / 3.0
+    
+    # # get width of right eye
+    # right_horizontal = [7, 6]
+    # right_horizontal_coordinates = []
+    # for i, idx in enumerate(right_horizontal):
+    #     x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
+    #     right_horizontal_coordinates.append((x, y))
+        
+    # horizontal_distance = distance.euclidean(right_horizontal_coordinates[0], right_horizontal_coordinates[1])
+    
+    # right eye top indices: 0, 15, 14
+    # right eye bottom indices: 7, 8, 10
+    # right eye horizontal indices: 1, 4
     
     # get average height of right eye
-    right_vertical_top = [1, 2, 3]
+    right_vertical_top = [0, 15, 14]
     right_top_coordinates = []
     for i, idx in enumerate(right_vertical_top):
         x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
         right_top_coordinates.append((x, y))
     
-    right_vertical_bottom = [13, 11, 10]
+    right_vertical_bottom = [7, 8, 10]
     right_bottom_coordinates = []
     for i, idx in enumerate(right_vertical_bottom):
         x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
@@ -81,7 +145,7 @@ def right_ear_algorithm(image, right_eye_indices, landmarks):
     vertical_distance_avg = vertical_distance_avg / 3.0
     
     # get width of right eye
-    right_horizontal = [7, 6]
+    right_horizontal = [1, 4]
     right_horizontal_coordinates = []
     for i, idx in enumerate(right_horizontal):
         x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
@@ -92,13 +156,10 @@ def right_ear_algorithm(image, right_eye_indices, landmarks):
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
     
-    threshold = 0.05
-    if ear < threshold:
-        # eye is closed
-        return 0
-    else:
-        # eye is open
-        return 1
+    threshold = 0.15
+    eye_status = 0 if ear < threshold else 1
+    
+    return eye_status
     
 
 def draw_eye_box(image, eye_indices, landmarks, eye_status):
