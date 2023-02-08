@@ -48,7 +48,7 @@ def left_ear_algorithm(image, left_eye_indices, landmarks):
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
     
-    threshold = 0.2
+    threshold = 0.05
     if ear < threshold:
         # eye is closed
         return 0
@@ -92,7 +92,7 @@ def right_ear_algorithm(image, right_eye_indices, landmarks):
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
     ear = vertical_distance_avg / horizontal_distance
     
-    threshold = 0.2
+    threshold = 0.05
     if ear < threshold:
         # eye is closed
         return 0
@@ -156,12 +156,10 @@ with mp_face_mesh.FaceMesh(
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = face_mesh.process(image)
     
-        # FACEMESH_RIGHT_EYE display the left eye on the screen
-        LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
+        LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LEFT_EYE)))
         LEFT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
         
-        # FACEMESH_LEFT_EYE display the right eye on the screen
-        RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LEFT_EYE)))
+        RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
         RIGHT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
 
         # Draw the face mesh annotations on the image.
@@ -199,27 +197,28 @@ with mp_face_mesh.FaceMesh(
                 # )
                 
                 # Draw iris
-                mp_drawing.draw_landmarks(
-                    image=image,
-                    landmark_list=face_landmarks,
-                    connections=mp_face_mesh.FACEMESH_IRISES,
-                    landmark_drawing_spec=None,
-                    connection_drawing_spec=mp_drawing_styles
-                    .get_default_face_mesh_iris_connections_style()
-                )
+                # mp_drawing.draw_landmarks(
+                #     image=image,
+                #     landmark_list=face_landmarks,
+                #     connections=mp_face_mesh.FACEMESH_IRISES,
+                #     landmark_drawing_spec=None,
+                #     connection_drawing_spec=mp_drawing_styles
+                #     .get_default_face_mesh_iris_connections_style()
+                # )
                 
                 # Draw Left eye points
-                mp_drawing.draw_landmarks(
-                    image=image,
-                    landmark_list=LEFT_EYE_LANDMARKS,
-                    landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
-                )
+                # mp_drawing.draw_landmarks(
+                #     image=image,
+                #     landmark_list=LEFT_EYE_LANDMARKS,
+                #     landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
+                # )
+                
                 # Draw Right eye points
-                mp_drawing.draw_landmarks(
-                    image=image,
-                    landmark_list=RIGHT_EYE_LANDMARKS,
-                    landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1, circle_radius=1),
-                )
+                # mp_drawing.draw_landmarks(
+                #     image=image,
+                #     landmark_list=RIGHT_EYE_LANDMARKS,
+                #     landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1, circle_radius=1),
+                # )
                 
                 # EAR algorithm part
                 left_eye_status = left_ear_algorithm(image, LEFT_EYE_INDICES, face_landmarks)
