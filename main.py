@@ -12,88 +12,41 @@ mp_face_mesh = mp.solutions.face_mesh
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 cap = cv2.VideoCapture(0)
 
-def left_ear_algorithm(image, left_eye_indices, landmarks):
-    # left eye top indices: 1, 2, 3
-    # left eye bottom indices: 13, 11, 10
-    # left eye horizontal indices: 7, 6
-    
-    # get average height of left eye
-    left_vertical_top = [1, 2, 3]
-    left_top_coordinates = []
-    for i, idx in enumerate(left_vertical_top):
-        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
-        left_top_coordinates.append((x, y))
-    
-    left_vertical_bottom = [13, 11, 10]
-    left_bottom_coordinates = []
-    for i, idx in enumerate(left_vertical_bottom):
-        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
-        left_bottom_coordinates.append((x, y))
-    
-    vertical_distance_avg = float(0.0)
-    for i in range(len(left_top_coordinates)):
-        d = distance.euclidean(left_top_coordinates[i], left_bottom_coordinates[i])
-        vertical_distance_avg += d
-    vertical_distance_avg = vertical_distance_avg / 3.0
-    
-    # get width of left eye
-    left_horizontal = [7, 6]
-    left_horizontal_coordinates = []
-    for i, idx in enumerate(left_horizontal):
-        x, y = landmarks.landmark[left_eye_indices[idx]].x, landmarks.landmark[left_eye_indices[idx]].y
-        left_horizontal_coordinates.append((x, y))
+def get_ear_status(eye_indices, eye_top, eye_bottom, eye_width, landmarks):    
+    # get average height of eye
+    eye_top_coordinates = []
+    for i, idx in enumerate(eye_top):
+        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
+        eye_top_coordinates.append((x, y))
         
-    horizontal_distance = distance.euclidean(left_horizontal_coordinates[0], left_horizontal_coordinates[1])
+    eye_bottom_coordinates = []
+    for i, idx in enumerate(eye_bottom):
+        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
+        eye_bottom_coordinates.append((x, y))
+    
+    eye_height_avg = float(0.0)
+    for i in range(len(eye_top_coordinates)):
+        d = distance.euclidean(eye_top_coordinates[i], eye_bottom_coordinates[i])
+        eye_height_avg += d
+    
+    eye_height_avg = eye_height_avg / 3.0
+    
+    # get width of eye
+    eye_width_coordinates = []
+    for i, idx in enumerate(eye_width):
+        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
+        eye_width_coordinates.append((x, y))
+        
+    eye_width = distance.euclidean(eye_width_coordinates[0], eye_width_coordinates[1])
     
     # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
-    ear = vertical_distance_avg / horizontal_distance
+    ear = eye_height_avg / eye_width
 
     threshold = 0.15
     eye_status = 0 if ear < threshold else 1
     
     return eye_status
 
-def right_ear_algorithm(image, right_eye_indices, landmarks):
-    # right eye top indices: 0, 15, 14
-    # right eye bottom indices: 7, 8, 10
-    # right eye horizontal indices: 1, 4
-    
-    # get average height of right eye
-    right_vertical_top = [0, 15, 14]
-    right_top_coordinates = []
-    for i, idx in enumerate(right_vertical_top):
-        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
-        right_top_coordinates.append((x, y))
-    
-    right_vertical_bottom = [7, 8, 10]
-    right_bottom_coordinates = []
-    for i, idx in enumerate(right_vertical_bottom):
-        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
-        right_bottom_coordinates.append((x, y))
-    
-    vertical_distance_avg = float(0.0)
-    for i in range(len(right_top_coordinates)):
-        d = distance.euclidean(right_top_coordinates[i], right_bottom_coordinates[i])
-        vertical_distance_avg += d
-    vertical_distance_avg = vertical_distance_avg / 3.0
-    
-    # get width of right eye
-    right_horizontal = [1, 4]
-    right_horizontal_coordinates = []
-    for i, idx in enumerate(right_horizontal):
-        x, y = landmarks.landmark[right_eye_indices[idx]].x, landmarks.landmark[right_eye_indices[idx]].y
-        right_horizontal_coordinates.append((x, y))
-        
-    horizontal_distance = distance.euclidean(right_horizontal_coordinates[0], right_horizontal_coordinates[1])
-    
-    # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
-    ear = vertical_distance_avg / horizontal_distance
-    
-    threshold = 0.15
-    eye_status = 0 if ear < threshold else 1
-    
-    return eye_status
-    
 
 def draw_eye_box(image, eye_indices, landmarks, eye_status):
     # eye box basic settings
@@ -215,8 +168,23 @@ with mp_face_mesh.FaceMesh(
                 # )
                 
                 # EAR algorithm part
-                left_eye_status = left_ear_algorithm(image, LEFT_EYE_INDICES, face_landmarks)
-                right_eye_status = right_ear_algorithm(image, RIGHT_EYE_INDICES, face_landmarks)
+
+                # left eye top indices: 1, 2, 3
+                # left eye bottom indices: 13, 11, 10
+                # left eye width indices: 7, 6
+                L_eye_top = [1, 2, 3]
+                L_eye_bottom = [13, 11, 10]
+                L_eye_width = [7, 6]
+                
+                # right eye top indices: 0, 15, 14
+                # right eye bottom indices: 7, 8, 10
+                # right eye width indices: 1, 4
+                R_eye_top = [0, 15, 14]
+                R_eye_bottom = [7, 8, 10]
+                R_eye_width = [1, 4]
+
+                left_eye_status = get_ear_status(LEFT_EYE_INDICES, L_eye_top, L_eye_bottom, L_eye_width, face_landmarks)
+                right_eye_status = get_ear_status(RIGHT_EYE_INDICES, R_eye_top, R_eye_bottom, R_eye_width, face_landmarks)
                 
                 # Draw eye boxes
                 draw_eye_box(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
