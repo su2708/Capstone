@@ -134,51 +134,62 @@ with mp_face_mesh.FaceMesh(
                     RIGHT_EYE_LANDMARKS.landmark.extend([landmark])
                 
                 # Draw borders around Face, Eyes and Lips
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=face_landmarks,
-                #     connections=mp_face_mesh.FACEMESH_CONTOURS,
-                #     landmark_drawing_spec=None,
-                #     connection_drawing_spec=mp_drawing_styles
-                #     .get_default_face_mesh_contours_style()
-                # )
+                '''
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=face_landmarks,
+                    connections=mp_face_mesh.FACEMESH_CONTOURS,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing_styles
+                    .get_default_face_mesh_contours_style()
+                )
+                '''
                 
                 # Draw iris
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=face_landmarks,
-                #     connections=mp_face_mesh.FACEMESH_IRISES,
-                #     landmark_drawing_spec=None,
-                #     connection_drawing_spec=mp_drawing_styles
-                #     .get_default_face_mesh_iris_connections_style()
-                # )
+                '''
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=face_landmarks,
+                    connections=mp_face_mesh.FACEMESH_IRISES,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing_styles
+                    .get_default_face_mesh_iris_connections_style()
+                )
+                '''
                 
                 # Draw Left eye points
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=LEFT_EYE_LANDMARKS,
-                #     landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
-                # )
+                '''
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=LEFT_EYE_LANDMARKS,
+                    landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
+                )
+                '''
                 
                 # Draw Right eye points
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=RIGHT_EYE_LANDMARKS,
-                #     landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1, circle_radius=1),
-                # )
+                '''
+                mp_drawing.draw_landmarks(
+                    image=image,
+                    landmark_list=RIGHT_EYE_LANDMARKS,
+                    landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 255), thickness=1, circle_radius=1),
+                )
+                '''
                 
                 # EAR algorithm part
-
-                # left eye top indices: 1, 2, 3
-                # left eye bottom indices: 13, 11, 10
-                # left eye width indices: 7, 6
+                '''
+                left eye top indices: 1, 2, 3
+                left eye bottom indices: 13, 11, 10
+                left eye width indices: 7, 6
+                '''
                 L_eye_top = [1, 2, 3]
                 L_eye_bottom = [13, 11, 10]
                 L_eye_width = [7, 6]
                 
-                # right eye top indices: 0, 15, 14
-                # right eye bottom indices: 7, 8, 10
-                # right eye width indices: 1, 4
+                '''
+                right eye top indices: 0, 15, 14
+                right eye bottom indices: 7, 8, 10
+                right eye width indices: 1, 4
+                '''
                 R_eye_top = [0, 15, 14]
                 R_eye_bottom = [7, 8, 10]
                 R_eye_width = [1, 4]
