@@ -1,89 +1,86 @@
-import numpy as np
 import mediapipe as mp
 import cv2
 import itertools
 from mediapipe.framework.formats import landmark_pb2
-from scipy.spatial import distance
+from get_EAR_status import get_ear_status
+from draw_eye_box import draw_eye_box
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
-mp_face_mesh = mp.solutions.face_mesh
-
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+    
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(
+    max_num_faces=1,
+    refine_landmarks=True, 
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5)
+
 cap = cv2.VideoCapture(0)
 
-def get_ear_status(eye_indices, eye_top, eye_bottom, eye_width, landmarks):    
-    # get average height of eye
-    eye_top_coordinates = []
-    for i, idx in enumerate(eye_top):
-        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
-        eye_top_coordinates.append((x, y))
-        
-    eye_bottom_coordinates = []
-    for i, idx in enumerate(eye_bottom):
-        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
-        eye_bottom_coordinates.append((x, y))
-    
-    eye_height_avg = float(0.0)
-    for i in range(len(eye_top_coordinates)):
-        d = distance.euclidean(eye_top_coordinates[i], eye_bottom_coordinates[i])
-        eye_height_avg += d
-    
-    eye_height_avg = eye_height_avg / 3.0
-    
-    # get width of eye
-    eye_width_coordinates = []
-    for i, idx in enumerate(eye_width):
-        x, y = landmarks.landmark[eye_indices[idx]].x, landmarks.landmark[eye_indices[idx]].y
-        eye_width_coordinates.append((x, y))
-        
-    eye_width = distance.euclidean(eye_width_coordinates[0], eye_width_coordinates[1])
-    
-    # EAR(Eye Aspect Ratio) = the average heights of eye / the width of eye
-    ear = eye_height_avg / eye_width
+while cap.isOpened():
+    success, image = cap.read()
+    if not success:
+        print("Ignoring empty camera frame.")
+        # If loading a video, use 'break' instead of 'continue'.
+        continue
 
-    threshold = 0.15
-    eye_status = 0 if ear < threshold else 1
-    
-    return eye_status
+    # To improve performance, optionally mark the image as not writeable to
+    # pass by reference.
+    image.flags.writeable = False
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = face_mesh.process(image)
 
+    LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LEFT_EYE)))
+    RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
 
-def draw_eye_box(image, eye_indices, landmarks, eye_status):
-    # eye box basic settings
-    color = (255, 255, 255)
-    thickness = 2
-    fontFace = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 1
-    lineType = cv2.LINE_AA
-    message = "open" if eye_status == 1 else "close"
-    
-    max_x, min_x = float('-inf'), float('inf')
-    max_y, min_y = float('-inf'), float('inf')
-    
-    # get max & min coordinates of eye
-    for eye_index in eye_indices:
-        landmark = landmarks.landmark[eye_index]
-        if max_x <= landmark.x:
-            max_x = landmark.x
-        elif min_x > landmark.x:
-            min_x = landmark.x
-        
-        if max_y <= landmark.y:
-            max_y = landmark.y
-        elif min_y > landmark.y:
-            min_y = landmark.y
-    
-    # set max & min coordinates of eye box
-    box_max_x, box_min_x = int(max_x * image.shape[1]) + 10, int(min_x * image.shape[1]) - 10
-    box_max_y, box_min_y = int(max_y * image.shape[0]) + 10, int(min_y * image.shape[0]) - 10
-    
-    top_left = (box_min_x, box_min_y)
-    bottom_right = (box_max_x, box_max_y)
-    
-    # draw eye box
-    cv2.putText(image, message, top_left, fontFace, fontScale, color, thickness, lineType)
-    cv2.rectangle(image, top_left, bottom_right, color, thickness)
-    
+    # Draw the face mesh annotations on the image.
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
+
+    if results.multi_face_landmarks is not None:
+        for face_landmarks in results.multi_face_landmarks:
+            # EAR algorithm part
+            '''
+            left eye top indices: 1, 2, 3
+            left eye bottom indices: 13, 11, 10
+            left eye width indices: 7, 6
+            '''
+            L_eye_top = [1, 2, 3]
+            L_eye_bottom = [13, 11, 10]
+            L_eye_width = [7, 6]
+            
+            '''
+            right eye top indices: 0, 15, 14
+            right eye bottom indices: 7, 8, 10
+            right eye width indices: 1, 4
+            '''
+            R_eye_top = [0, 15, 14]
+            R_eye_bottom = [7, 8, 10]
+            R_eye_width = [1, 4]
+
+            left_eye_status = get_ear_status(LEFT_EYE_INDICES, L_eye_top, L_eye_bottom, L_eye_width, face_landmarks)
+            right_eye_status = get_ear_status(RIGHT_EYE_INDICES, R_eye_top, R_eye_bottom, R_eye_width, face_landmarks)
+            
+            # Draw eye boxes
+            draw_eye_box(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
+            draw_eye_box(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
+            
+        cv2.imshow('MediaPipe Face Mesh', image)
+        if cv2.waitKey(5) & 0xFF == 27:
+            break
+    else:
+        print("No faces detected.")
+        break                  
+
+# Release the video capture and destroy all windows
+cap.release()
+cv2.destroyAllWindows()
+
+# Close the solution
+face_mesh.close()
+
+"""
 with mp_face_mesh.FaceMesh(
     max_num_faces=1,
     refine_landmarks=True,
@@ -104,10 +101,10 @@ with mp_face_mesh.FaceMesh(
         results = face_mesh.process(image)
     
         LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LEFT_EYE)))
-        LEFT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+        # LEFT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
         
         RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
-        RIGHT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+        # RIGHT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
 
         # Draw the face mesh annotations on the image.
         image.flags.writeable = True
@@ -118,20 +115,24 @@ with mp_face_mesh.FaceMesh(
                 lms = face_landmarks.landmark
 
                 # Make a LEFT_EYE_LANDMARKS
+                '''
                 for index in LEFT_EYE_INDICES:
                     landmark = landmark_pb2.NormalizedLandmark()
                     landmark.x = lms[index].x
                     landmark.y = lms[index].y
                     landmark.z = lms[index].z
                     LEFT_EYE_LANDMARKS.landmark.extend([landmark])
+                '''
 
                 # Make a RIGHT_EYE_LANDMARKS
+                '''
                 for index in RIGHT_EYE_INDICES:
                     landmark = landmark_pb2.NormalizedLandmark()
                     landmark.x = lms[index].x
                     landmark.y = lms[index].y
                     landmark.z = lms[index].z
                     RIGHT_EYE_LANDMARKS.landmark.extend([landmark])
+                '''
                 
                 # Draw borders around Face, Eyes and Lips
                 '''
@@ -209,3 +210,4 @@ with mp_face_mesh.FaceMesh(
             print("No faces detected.")
             break
 cap.release()
+"""
