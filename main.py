@@ -33,13 +33,35 @@ while cap.isOpened():
 
     LEFT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LEFT_EYE)))
     RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
-
+    
     # Draw the face mesh annotations on the image.
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
 
     if results.multi_face_landmarks is not None:
         for face_landmarks in results.multi_face_landmarks:
+            lms = face_landmarks.landmark
+            
+            # Draw borders around Face, Eyes and Lips
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_contours_style()
+            )
+            
+            # Draw iris
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_IRISES,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_iris_connections_style()
+            )
+            
             # EAR algorithm part
             '''
             left eye top indices: 1, 2, 3
@@ -105,6 +127,9 @@ with mp_face_mesh.FaceMesh(
         
         RIGHT_EYE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_RIGHT_EYE)))
         # RIGHT_EYE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+        
+        LIP_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LIPS)))
+        LIP_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
 
         # Draw the face mesh annotations on the image.
         image.flags.writeable = True
@@ -134,15 +159,20 @@ with mp_face_mesh.FaceMesh(
                     RIGHT_EYE_LANDMARKS.landmark.extend([landmark])
                 '''
                 
-                # Draw borders around Face, Eyes and Lips
+                # Make a LIP_LANDMARKS
+                for index in LIP_INDICES:
+                    landmark = landmark_pb2.NormalizedLandmark()
+                    landmark.x = lms[index].x
+                    landmark.y = lms[index].y
+                    landmark.z = lms[index].z
+                    LIP_LANDMARKS.landmark.extend([landmark])
+                
+                # Draw Lips
                 '''
                 mp_drawing.draw_landmarks(
                     image=image,
-                    landmark_list=face_landmarks,
-                    connections=mp_face_mesh.FACEMESH_CONTOURS,
-                    landmark_drawing_spec=None,
-                    connection_drawing_spec=mp_drawing_styles
-                    .get_default_face_mesh_contours_style()
+                    landmark_list=LIP_LANDMARKS,
+                    landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
                 )
                 '''
                 
