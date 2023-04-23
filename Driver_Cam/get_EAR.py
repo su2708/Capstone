@@ -1,6 +1,33 @@
 from scipy.spatial import distance
 
-def get_ear_status(eye_indices, eye_top, eye_bottom, eye_width, landmarks):    
+'''
+left eye top indices: 1, 2, 3
+left eye bottom indices: 13, 11, 10
+left eye width indices: 7, 6
+'''
+L_eye_top = [1, 2, 3]
+L_eye_bottom = [13, 11, 10]
+L_eye_width = [7, 6]
+
+'''
+right eye top indices: 0, 15, 14
+right eye bottom indices: 7, 8, 10
+right eye width indices: 1, 4
+'''
+R_eye_top = [0, 15, 14]
+R_eye_bottom = [7, 8, 10]
+R_eye_width = [1, 4]
+
+def EAR(eye_indices, landmarks, side):
+    if side == "left":
+        eye_top = L_eye_top
+        eye_bottom = L_eye_bottom
+        eye_width = L_eye_width
+    else:
+        eye_top = R_eye_top
+        eye_bottom = R_eye_bottom
+        eye_width = R_eye_width
+    
     # get average height of eye
     eye_top_coordinates = []
     for i, idx in enumerate(eye_top):

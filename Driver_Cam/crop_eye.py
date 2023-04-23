@@ -1,6 +1,6 @@
 import cv2
 
-def draw_eye_box(image, eye_indices, landmarks, eye_status):
+def crop_eye(image, eye_indices, landmarks, eye_status):
     # eye box basic settings
     color = (255, 255, 255)
     thickness = 2
