@@ -42,6 +42,7 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     fm_results = face_mesh.process(image)
+    obj_results = objectron.process(image)
 
     # Draw the face mesh annotations on the image.
     image.flags.writeable = True
@@ -113,17 +114,6 @@ while cap.isOpened():
 
     # OBJECT DETECTION PART
 
-    # To improve performance, optionally mark the image as not writeable to
-    # pass by reference.
-    image.flags.writeable = False
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    obj_results = objectron.process(image)
-
-    # Draw the box landmarks on the image.
-    image.flags.writeable = True
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
     if obj_results.detected_objects:
         for detected_object in obj_results.detected_objects:
             mp_drawing.draw_landmarks(image, detected_object.landmarks_2d, mp_objectron.BOX_CONNECTIONS)
@@ -138,6 +128,7 @@ cv2.destroyAllWindows()
 
 # Close the solution
 face_mesh.close()
+objectron.close()
 
 """
 with mp_face_mesh.FaceMesh(
