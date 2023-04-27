@@ -2,8 +2,12 @@ import mediapipe as mp
 import cv2
 import itertools
 from mediapipe.framework.formats import landmark_pb2
-from .get_EAR import EAR
-from .crop_eye import crop_eye
+from get_EAR import EAR
+from crop_eye import crop_eye
+# main.py에서 실행하려면
+# from Driver_Cam.get_EAR import EAR
+# from Driver_Cam.crop_eye import crop_eye
+
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -68,12 +72,37 @@ while cap.isOpened():
                 landmark.z = lms[index].z
                 OUTLINE_LANDMARKS.landmark.extend([landmark])
 
+            # Draw face landmarks
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_TESSELATION,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_tesselation_style()
+            )
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_tesselation_style()
+            )
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_IRISES,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_tesselation_style()
+            )
+
             # Draw face outline
+            '''
             mp_drawing.draw_landmarks(
                 image=image,
                 landmark_list=OUTLINE_LANDMARKS,
                 landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
             )
+            '''
 
             # Draw borders around Face, Eyes and Lips
             '''
@@ -88,22 +117,22 @@ while cap.isOpened():
             '''
             
             # Draw iris
-            mp_drawing.draw_landmarks(
+            '''mp_drawing.draw_landmarks(
                 image=image,
                 landmark_list=face_landmarks,
                 connections=mp_face_mesh.FACEMESH_IRISES,
                 landmark_drawing_spec=None,
                 connection_drawing_spec=mp_drawing_styles
                 .get_default_face_mesh_iris_connections_style()
-            )
+            )'''
             
             # EAR algorithm part
             left_eye_status = EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
             right_eye_status = EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
-            crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
-            crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
+            """crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
+            crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)"""
             
         cv2.imshow('MediaPipe Face Mesh', image)
         if cv2.waitKey(5) & 0xFF == 27:
