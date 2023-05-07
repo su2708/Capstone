@@ -18,7 +18,7 @@ R_eye_top = [0, 15, 14]
 R_eye_bottom = [7, 8, 10]
 R_eye_width = [1, 4]
 
-def EAR(eye_indices, landmarks, side):
+def get_EAR(eye_indices, landmarks, side):
     if side == "left":
         eye_top = L_eye_top
         eye_bottom = L_eye_bottom

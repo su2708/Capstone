@@ -2,11 +2,11 @@ import mediapipe as mp
 import cv2
 import itertools
 from mediapipe.framework.formats import landmark_pb2
-from get_EAR import EAR
-from crop_eye import crop_eye
+from EAR import get_EAR
+from eye_crop import crop_eye
 # main.py에서 실행하려면
-# from Driver_Cam.get_EAR import EAR
-# from Driver_Cam.crop_eye import crop_eye
+# from Driver_Cam.EAR import get_EAR
+# from Driver_Cam.eye_crop import crop_eye
 
 
 mp_drawing = mp.solutions.drawing_utils
@@ -127,8 +127,8 @@ while cap.isOpened():
             )'''
             
             # EAR algorithm part
-            left_eye_status = EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
-            right_eye_status = EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
+            left_eye_status = get_EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
+            right_eye_status = get_EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
             """crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
