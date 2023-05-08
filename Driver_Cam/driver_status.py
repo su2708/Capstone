@@ -43,7 +43,7 @@ while cap.isOpened():
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
     image.flags.writeable = False
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
 
     fm_results = face_mesh.process(image)
     obj_results = objectron.process(image)
@@ -73,6 +73,7 @@ while cap.isOpened():
                 OUTLINE_LANDMARKS.landmark.extend([landmark])
 
             # Draw face landmarks
+            '''
             mp_drawing.draw_landmarks(
                 image=image,
                 landmark_list=face_landmarks,
@@ -80,15 +81,16 @@ while cap.isOpened():
                 landmark_drawing_spec=None,
                 connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_tesselation_style()
             )
+            '''
             
             # Draw face outline
-            
+            '''
             mp_drawing.draw_landmarks(
                 image=image,
                 landmark_list=OUTLINE_LANDMARKS,
                 landmark_drawing_spec=mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=1),
             )
-            
+            '''
 
             # Draw borders around Face, Eyes and Lips
             '''
@@ -117,10 +119,10 @@ while cap.isOpened():
             right_eye_status = get_EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
-            """
+            
             crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
             crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
-            """
+            
             
         cv2.imshow('MediaPipe Face Mesh', image)
         if cv2.waitKey(5) & 0xFF == 27:
