@@ -42,7 +42,16 @@ while cap.isOpened():
         for face_landmarks in results.multi_face_landmarks:
             for idx, lm in enumerate(face_landmarks.landmark):
                 if idx == 33 or idx == 263 or idx == 1 or idx == 61 or idx == 291 or idx == 199:
-                    if idx == 1:
+                    '''
+                    33: 왼쪽 눈 바깥
+                    263: 오른쪽 눈 바깥
+                    1: 코 끝
+                    61: 입술 왼쪽 끝
+                    291: 입술 오른쪽 끝
+                    199: 턱 끝
+                    '''
+                    #if idx == 1:
+                    if idx == 199:
                         nose_2d = (lm.x * img_w, lm.y * img_h)
                         nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
 

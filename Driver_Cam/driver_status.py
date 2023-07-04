@@ -21,7 +21,7 @@ from eye_crop import crop_eye
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
-drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+drawing_spec = mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=1, circle_radius=1)
     
 # Face mesh setting part
 mp_face_mesh = mp.solutions.face_mesh
@@ -69,18 +69,30 @@ while cap.isOpened():
     # Face outline
     OUTLINE_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_FACE_OVAL)))
     OUTLINE_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+
+    # Iris outlines
+    IRIS_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_IRISES)))
+    IRIS_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
     
     if fm_results.multi_face_landmarks is not None:
         for face_landmarks in fm_results.multi_face_landmarks:
             lms = face_landmarks.landmark
             
-            # Make a OUTLINE_LANDMARKS
+            # Make OUTLINE_LANDMARKS
             for index in OUTLINE_INDICES:
                 landmark = landmark_pb2.NormalizedLandmark()
                 landmark.x = lms[index].x
                 landmark.y = lms[index].y
                 landmark.z = lms[index].z
                 OUTLINE_LANDMARKS.landmark.extend([landmark])
+
+            # Make IRIS_LANDMARKS
+            for index in IRIS_INDICES:
+                landmark = landmark_pb2.NormalizedLandmark()
+                landmark.x = lms[index].x
+                landmark.y = lms[index].y
+                landmark.z = lms[index].z
+                IRIS_LANDMARKS.landmark.extend([landmark])
 
             # Draw face landmarks
             '''
@@ -115,14 +127,31 @@ while cap.isOpened():
             '''
             
             # Draw iris
-            '''mp_drawing.draw_landmarks(
+            mp_drawing.draw_landmarks(
                 image=image,
                 landmark_list=face_landmarks,
                 connections=mp_face_mesh.FACEMESH_IRISES,
                 landmark_drawing_spec=None,
-                connection_drawing_spec=mp_drawing_styles
-                .get_default_face_mesh_iris_connections_style()
-            )'''
+                connection_drawing_spec=drawing_spec,
+            )
+
+            '''
+            0: 왼눈동자 안
+            1: 왼눈동자 위
+            2: 왼눈동자 밖
+            3: 왼눈동자 아래
+            4: 오른눈동자 밖
+            5: 오른눈동자 위
+            6: 오른눈동자 안
+            7: 오른눈동자 아래
+            '''
+            # Draw specific iris point
+            point_index = 7
+            chosen_point = lms[IRIS_INDICES[point_index]]
+            image_height, image_width, _ = image.shape
+            point_x = int(chosen_point.x * image_width)
+            point_y = int(chosen_point.y * image_height)
+            cv2.circle(image, (point_x, point_y), radius=5, color=(255, 0, 0))
             
             # EAR algorithm part
             left_eye_status = get_EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
@@ -187,6 +216,9 @@ with mp_face_mesh.FaceMesh(
         LIP_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_LIPS)))
         LIP_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
 
+        IRIS_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_IRISES)))
+        IRIS_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+
         # Draw the face mesh annotations on the image.
         image.flags.writeable = True
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -242,6 +274,16 @@ with mp_face_mesh.FaceMesh(
                     connection_drawing_spec=mp_drawing_styles
                     .get_default_face_mesh_iris_connections_style()
                 )
+                '''
+
+                # Draw specific iris point
+                '''
+                point_index = 0
+                chosen_point = lms[IRIS_INDICES[point_index]]
+                image_height, image_width, _ = image.shape
+                point_x = int(chosen_point.x * image_width)
+                point_y = int(chosen_point.y * image_height)
+                cv2.circle(image, (point_x, point_y), radius=5, color=(255, 0, 0))
                 '''
                 
                 # Draw Left eye points
