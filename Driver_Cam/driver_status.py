@@ -1,3 +1,13 @@
+'''
+운전자 상태 = 얼굴인식 + 물체인식
+
+1. 얼굴인식
+ - 운전자가 어딜 보고 있는지 파악
+ - 운전자가 눈을 감고있는지 파악
+ 
+2. 물체인식
+ - 운전자를 보는 카메라 시야 안에 휴대폰으로 추정되는 것이 보이는지 아닌지
+'''
 import mediapipe as mp
 import cv2
 import itertools
@@ -119,7 +129,6 @@ while cap.isOpened():
             right_eye_status = get_EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
-            
             crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
             crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
             
