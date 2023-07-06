@@ -92,7 +92,6 @@ while cap.isOpened():
             7: 오른눈동자 아래
             '''
             # Draw specific iris point
-            print(len(IRIS_INDICES))
             point_index = 7
             chosen_point = lms[IRIS_INDICES[point_index]]
             image_height, image_width, _ = image.shape

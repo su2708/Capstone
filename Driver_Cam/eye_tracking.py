@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
+import itertools
+from mediapipe.framework.formats import landmark_pb2
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -37,8 +39,35 @@ while cap.isOpened():
     face_3d = []
     face_2d = []
 
+    # Iris outlines
+    IRIS_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_IRISES)))
+    IRIS_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
+
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
+            lms = face_landmarks.landmark
+
+            # Make IRIS_LANDMARKS
+            for index in IRIS_INDICES:
+                landmark = landmark_pb2.NormalizedLandmark()
+                landmark.x = lms[index].x
+                landmark.y = lms[index].y
+                landmark.z = lms[index].z
+                IRIS_LANDMARKS.landmark.extend([landmark])
+            
+            for idx in IRIS_INDICES:
+                if idx == 2:
+                    nose_2d = (IRIS_LANDMARKS[idx].x * img_w, IRIS_LANDMARKS[idx].y * img_h)
+                    nose_3d = (IRIS_LANDMARKS[idx].x * img_w, IRIS_LANDMARKS[idx].y * img_h, IRIS_LANDMARKS[idx].z * 3000)
+                    pass
+                x, y = int(IRIS_LANDMARKS[idx].x * img_w), int(IRIS_LANDMARKS[idx].y * img_h)
+
+                # Get the 2D Coordinates
+                face_2d.append([x, y])
+
+                # Get the 3D Coordinates
+                face_3d.append([x, y, lms.z])
+            """    
             for idx, lm in enumerate(face_landmarks.landmark):
                 if idx == 33 or idx == 263 or idx == 1 or idx == 61 or idx == 291 or idx == 199:
                     '''
@@ -61,7 +90,7 @@ while cap.isOpened():
 
                     # Get the 3D Coordinates
                     face_3d.append([x, y, lm.z])       
-            
+            """
             # Convert it to the NumPy array
             face_2d = np.array(face_2d, dtype=np.float64)
 
