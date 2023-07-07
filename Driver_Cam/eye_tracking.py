@@ -1,177 +1,105 @@
 import cv2
-import mediapipe as mp
 import numpy as np
-import time
-import itertools
-from mediapipe.framework.formats import landmark_pb2
 
-mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+'''
+0: 왼눈동자 안 - 469
+1: 왼눈동자 위 - 470
+2: 왼눈동자 밖 - 471
+3: 왼눈동자 아래 - 472
+4: 오른눈동자 밖 - 474
+5: 오른눈동자 위 - 475
+6: 오른눈동자 안 - 476
+7: 오른눈동자 아래 - 477
+'''
 
-mp_drawing = mp.solutions.drawing_utils
-
-drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
-
-cap = cv2.VideoCapture(0)
-
-while cap.isOpened():
-    success, image = cap.read()
-
-    start = time.time()
-
-    # Flip the image horizontally for a later selfie-view display
-    # Also convert the color space from BGR to RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # To improve performance
-    image.flags.writeable = False
-    
-    # Get the result
-    results = face_mesh.process(image)
-    
-    # To improve performance
-    image.flags.writeable = True
-    
-    # Convert the color space from RGB to BGR
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
+def track_eyes(image, face_landmarks, iris_indices):
     img_h, img_w, img_c = image.shape
-    face_3d = []
     face_2d = []
+    face_3d = []
 
-    # Iris outlines
-    IRIS_INDICES = list(set(itertools.chain(*mp_face_mesh.FACEMESH_IRISES)))
-    IRIS_LANDMARKS = landmark_pb2.NormalizedLandmarkList()
-
-    if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
-            lms = face_landmarks.landmark
-
-            # Make IRIS_LANDMARKS
-            for index in IRIS_INDICES:
-                landmark = landmark_pb2.NormalizedLandmark()
-                landmark.x = lms[index].x
-                landmark.y = lms[index].y
-                landmark.z = lms[index].z
-                IRIS_LANDMARKS.landmark.extend([landmark])
+    for idx, lm in enumerate(face_landmarks.landmark):
+        if idx == 33 or idx == 263 or idx == 1 or idx == 61 or idx == 291 or idx == 199 or idx == 471 or idx == 474:
+            '''
+            33: 왼쪽 눈 바깥
+            263: 오른쪽 눈 바깥
+            1: 코 끝
+            61: 입술 왼쪽 끝
+            291: 입술 오른쪽 끝
+            199: 턱 끝
+            '''
+            if idx == 471:
+                left_iris_2d = (lm.x * img_w, lm.y * img_h)
+                left_iris_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
+            elif idx == 474:
+                right_iris_2d = (lm.x * img_w, lm.y * img_h)
+                right_iris_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
             
-            for idx in IRIS_INDICES:
-                if idx == 2:
-                    nose_2d = (IRIS_LANDMARKS[idx].x * img_w, IRIS_LANDMARKS[idx].y * img_h)
-                    nose_3d = (IRIS_LANDMARKS[idx].x * img_w, IRIS_LANDMARKS[idx].y * img_h, IRIS_LANDMARKS[idx].z * 3000)
-                    pass
-                x, y = int(IRIS_LANDMARKS[idx].x * img_w), int(IRIS_LANDMARKS[idx].y * img_h)
+            x, y = int(lm.x * img_w), int(lm.y * img_h)
 
-                # Get the 2D Coordinates
-                face_2d.append([x, y])
+            # Get the 2D Coordinates
+            face_2d.append([x, y])
 
-                # Get the 3D Coordinates
-                face_3d.append([x, y, lms.z])
-            """    
-            for idx, lm in enumerate(face_landmarks.landmark):
-                if idx == 33 or idx == 263 or idx == 1 or idx == 61 or idx == 291 or idx == 199:
-                    '''
-                    33: 왼쪽 눈 바깥
-                    263: 오른쪽 눈 바깥
-                    1: 코 끝
-                    61: 입술 왼쪽 끝
-                    291: 입술 오른쪽 끝
-                    199: 턱 끝
-                    '''
-                    #if idx == 1:
-                    if idx == 1:
-                        nose_2d = (lm.x * img_w, lm.y * img_h)
-                        nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
-
-                    x, y = int(lm.x * img_w), int(lm.y * img_h)
-
-                    # Get the 2D Coordinates
-                    face_2d.append([x, y])
-
-                    # Get the 3D Coordinates
-                    face_3d.append([x, y, lm.z])       
-            """
-            # Convert it to the NumPy array
-            face_2d = np.array(face_2d, dtype=np.float64)
-
-            # Convert it to the NumPy array
-            face_3d = np.array(face_3d, dtype=np.float64)
-
-            # The camera matrix
-            focal_length = 1 * img_w
-
-            cam_matrix = np.array([ [focal_length, 0, img_h / 2],
-                                    [0, focal_length, img_w / 2],
-                                    [0, 0, 1]])
-
-            # The distortion parameters
-            dist_matrix = np.zeros((4, 1), dtype=np.float64)
-
-            # Solve PnP
-            success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
-
-            # Get rotational matrix
-            rmat, jac = cv2.Rodrigues(rot_vec)
-
-            # Get angles
-            angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
-            print(angles)
-
-            # Get the y rotation degree
-            x = angles[0] * 360
-            y = angles[1] * 360
-            z = angles[2] * 360
-          
-
-            # See where the user's head tilting
-            if y < -10:
-                text = "Looking Left"
-            elif y > 10:
-                text = "Looking Right"
-            elif x < -10:
-                text = "Looking Down"
-            elif x > 10:
-                text = "Looking Up"
-            else:
-                text = "Forward"
-
-            # Display the nose direction
-            nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
-
-            p1 = (int(nose_2d[0]), int(nose_2d[1]))
-            p2 = (int(nose_2d[0] + y * 10) , int(nose_2d[1] - x * 10))
-            p3 = (int(nose_2d[0] + 10) , int(nose_2d[1]))
+            # Get the 3D Coordinates
+            face_3d.append([x, y, lm.z]) 
             
-            cv2.line(image, p1, p2, (255, 0, 0), 3)
-            cv2.line(image, p1, p3, (0, 255, 0), 3)
+    # Convert it to the NumPy array
+    face_2d = np.array(face_2d, dtype=np.float64)
 
-            # Add the text on the image
-            cv2.putText(image, text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
-            cv2.putText(image, "x: " + str(np.round(x,2)), (500, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(image, "y: " + str(np.round(y,2)), (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(image, "z: " + str(np.round(z,2)), (500, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    # Convert it to the NumPy array
+    face_3d = np.array(face_3d, dtype=np.float64)
 
+    # The camera matrix
+    focal_length = 1 * img_w
 
-        end = time.time()
-        totalTime = end - start
+    cam_matrix = np.array([ [focal_length, 0, img_h / 2],
+                            [0, focal_length, img_w / 2],
+                            [0, 0, 1]])
+    
+    # The distortion parameters
+    dist_matrix = np.zeros((4, 1), dtype=np.float64)
 
-        fps = 1 / totalTime
-        #print("FPS: ", fps)
+    # Solve PnP
+    success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
 
-        cv2.putText(image, f'FPS: {int(fps)}', (20,450), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
+    # Get rotational matrix
+    rmat, jac = cv2.Rodrigues(rot_vec)
 
-        mp_drawing.draw_landmarks(
-                    image=image,
-                    landmark_list=face_landmarks,
-                    connections=mp_face_mesh.FACEMESH_TESSELATION,
-                    landmark_drawing_spec=drawing_spec,
-                    connection_drawing_spec=drawing_spec)
+    # Get angles
+    angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 
+    # Get the y rotation degree
+    x = angles[0] * 360
+    y = angles[1] * 360
+    z = angles[2] * 360   
 
-    cv2.imshow('Head Pose Estimation', image)
+    # See where the user's head tilting
+    if y < -10:
+        text = "Looking Left"
+    elif y > 10:
+        text = "Looking Right"
+    elif x < -10:
+        text = "Looking Down"
+    elif x > 10:
+        text = "Looking Up"
+    else:
+        text = "Forward"
 
-    if cv2.waitKey(5) & 0xFF == 27:
-        break
+    # Display the iris direction
+    left_iris_3d_projection, jacobian = cv2.projectPoints(left_iris_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
+    right_iris_3d_projection, jacobian = cv2.projectPoints(right_iris_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
 
+    p1 = (int(left_iris_2d[0]), int(left_iris_2d[1]))
+    p2 = (int(left_iris_2d[0] + y * 10) , int(left_iris_2d[1] - x * 10))
+    p3 = (int(right_iris_2d[0]), int(right_iris_2d[1]))
+    p4 = (int(right_iris_2d[0] + y * 10), int(right_iris_2d[1] - x * 10))
+    
+    cv2.line(image, p1, p2, (255, 0, 0), 3)
+    cv2.line(image, p3, p4, (0, 0, 255), 3)
 
-cap.release()
+    # Add the text on the image
+    cv2.putText(image, text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+    cv2.putText(image, "x: " + str(np.round(x,2)), (500, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.putText(image, "y: " + str(np.round(y,2)), (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.putText(image, "z: " + str(np.round(z,2)), (500, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+    pass

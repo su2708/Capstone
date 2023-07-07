@@ -11,9 +11,11 @@
 import mediapipe as mp
 import cv2
 import itertools
+import time
 from mediapipe.framework.formats import landmark_pb2
 from EAR import get_EAR
 from eye_crop import crop_eye
+from eye_tracking import track_eyes
 # main.py에서 실행하려면
 # from Driver_Cam.EAR import get_EAR
 # from Driver_Cam.eye_crop import crop_eye
@@ -38,6 +40,8 @@ while cap.isOpened():
         print("Ignoring empty camera frame.")
         # If loading a video, use 'break' instead of 'continue'.
         continue
+
+    start = time.time()
 
     # FACE MESH PART
 
@@ -72,42 +76,22 @@ while cap.isOpened():
                 landmark.z = lms[index].z
                 IRIS_LANDMARKS.landmark.extend([landmark])
             
-            # Draw iris
-            mp_drawing.draw_landmarks(
-                image=image,
-                landmark_list=face_landmarks,
-                connections=mp_face_mesh.FACEMESH_IRISES,
-                landmark_drawing_spec=None,
-                connection_drawing_spec=drawing_spec,
-            )
+            # Eye tracking part
+            track_eyes(image, face_landmarks, IRIS_INDICES)
 
-            '''
-            0: 왼눈동자 안
-            1: 왼눈동자 위
-            2: 왼눈동자 밖
-            3: 왼눈동자 아래
-            4: 오른눈동자 밖
-            5: 오른눈동자 위
-            6: 오른눈동자 안
-            7: 오른눈동자 아래
-            '''
-            # Draw specific iris point
-            point_index = 7
-            chosen_point = lms[IRIS_INDICES[point_index]]
-            image_height, image_width, _ = image.shape
-            point_x = int(chosen_point.x * image_width)
-            point_y = int(chosen_point.y * image_height)
-            cv2.circle(image, (point_x, point_y), radius=5, color=(255, 0, 0))
-            
             # EAR algorithm part
             left_eye_status = get_EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
             right_eye_status = get_EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
-            crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
-            crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
+            # crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
+            # crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
             
-            
+        end = time.time()
+        total_time = end - start
+        fps = 1/ total_time
+        cv2.putText(image, f'FPS: {int(fps)}', (20,450), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
+
         cv2.imshow('MediaPipe Face Mesh', image)
         if cv2.waitKey(5) & 0xFF == 27:
             break
