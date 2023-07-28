@@ -84,8 +84,8 @@ while cap.isOpened():
             right_eye_status = get_EAR(RIGHT_EYE_INDICES, face_landmarks, side="right")
             
             # Draw eye boxes
-            # crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
-            # crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
+            crop_eye(image, LEFT_EYE_INDICES, face_landmarks, left_eye_status)
+            crop_eye(image, RIGHT_EYE_INDICES, face_landmarks, right_eye_status)
             
         end = time.time()
         total_time = end - start
