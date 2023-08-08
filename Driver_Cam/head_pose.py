@@ -11,6 +11,8 @@ mp_drawing = mp.solutions.drawing_utils
 
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
+def convert_to_float64(t):
+    return tuple(np.float64(x) for x in t)
 
 cap = cv2.VideoCapture(0)
 

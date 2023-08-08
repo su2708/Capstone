@@ -77,7 +77,7 @@ while cap.isOpened():
                 IRIS_LANDMARKS.landmark.extend([landmark])
             
             # Eye tracking part
-            track_eyes(image, face_landmarks, IRIS_INDICES)
+            # track_eyes(image, face_landmarks, IRIS_INDICES)
 
             # EAR algorithm part
             left_eye_status = get_EAR(LEFT_EYE_INDICES, face_landmarks, side="left")
