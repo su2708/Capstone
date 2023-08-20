@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 video = cv2.VideoCapture("D:\과기대\캡스톤디자인\Capstone Design\Capstone\Blackbox_Cam\challenge_video.mp4")
+#video = cv2.VideoCapture("D:\과기대\캡스톤디자인\Capstone Design\Capstone\Blackbox_Cam\Test_seoul_360.mp4")
 
 while True:
     ret, or_frame = video.read()        #프레임 당 이미지 읽기
@@ -15,12 +16,16 @@ while True:
     #구름 때문에 하늘에도 선이 발생 => 이미지 일부분만 잘라서 활용하고 다시 돌려놓음
 
     # 너비, 높이 확인
-    #height, width = hsv.shape[:2]
-    #print("이미지 너비: ", width) #1280
-    #print("이미지 높이: ", height) #720
+    height, width = hsv.shape[:2]
+    # print("이미지 너비: ", width) #1280, 852
+    # print("이미지 높이: ", height) #720, 480
+    roi_x1, roi_y1 = 0.1, 0.65
+    roi_x2, roi_y2 = 0.9, 0.95
 
-    start_x, start_y = 100, 500
-    end_x, end_y = 1250, 710
+    # start_x, start_y = 100, 500
+    # end_x, end_y = 1250, 710
+    start_x, start_y = int(width*roi_x1), int(height*roi_y1)
+    end_x, end_y = int(width*roi_x2), int(height*roi_y2)
     cropped_hsv = hsv[start_y:end_y, start_x:end_x]
 
 
