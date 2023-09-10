@@ -16,14 +16,12 @@ def main():
     gp.output(7, False)
     gp.output(11, False)
     gp.output(12, True)
-    capture(1)
-    print('Start testing the camera B') 
-    i2c = "i2cset -y 1 0x70 0x00 0x05"
+    print('Start testing the camera D') 
+    i2c = "i2cset -y 1 0x70 0x00 0x07"
     os.system(i2c)
     gp.output(7, True)
     gp.output(11, False)
     gp.output(12, True)
-    capture(2)
     
 def capture(cam):
     cmd = "libcamera-still -o capture_%d.jpg" % cam
