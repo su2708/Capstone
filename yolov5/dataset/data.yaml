@@ -1,0 +1,13 @@
+names:
+- cars
+- truck
+nc: 2
+roboflow:
+  license: CC BY 4.0
+  project: car-truck-c6m1q
+  url: https://universe.roboflow.com/project/car-truck-c6m1q/dataset/1
+  version: 1
+  workspace: project
+test: C:\yolov5\dataset\test.txt
+train: C:\yolov5\dataset\train.txt
+val: C:\yolov5\dataset\val.txt
