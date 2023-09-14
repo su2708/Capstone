@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, Qt
 import RPi.GPIO as gp
 import time
 import os
@@ -82,9 +82,14 @@ class WorkThread(QThread):
                 except Exception as e:
                     print("capture_buffer: "+ str(e))
                     
+class MultiCamWindow(QWidget):
+    # Esc key를 누르면 카메라 실행 창이 꺼지는 함수
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
 
 app = QApplication([])
-window = QWidget()
+window = MultiCamWindow()
 layout_h = QHBoxLayout()
 layout_v = QVBoxLayout()
 image_label = QLabel()
