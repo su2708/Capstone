@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWid
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
 from PyQt5.QtCore import QThread, Qt
+import tensorflow as tf
 import RPi.GPIO as gp
 import time
 import os
@@ -19,10 +20,13 @@ adapter_info = {
     }
 }
 
+model_path = 'drowsiness.h5'
+
 class WorkThread(QThread):
 
-    def __init__(self):
+    def __init__(self, model_path):
         super(WorkThread,self).__init__()
+        self.model = tf.keras.models.load_model(model_path)
         gp.setwarnings(False)
         gp.setmode(gp.BOARD)
         gp.setup(7, gp.OUT)
