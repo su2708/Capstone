@@ -1,6 +1,8 @@
 import tensorflow as tf
 import cv2
 
+print('hello')
+
 # 모델 파일('drowsiness.h5') 경로 지정 (문자열로)
 model_path = './drowsiness.h5'
 

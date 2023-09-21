@@ -6,7 +6,6 @@ import tensorflow as tf
 import RPi.GPIO as gp
 import time
 import os
-from yolov5 import sample
 
 width = 320
 height = 240 
@@ -79,7 +78,6 @@ class WorkThread(QThread):
                 try:
                     buf = picam2.capture_array()
                     cvimg = QImage(buf, width, height,QImage.Format_RGB888)
-                    sample.check(cvimg)
                     pixmap = QPixmap(cvimg)
                     if item == 'A':
                         image_label.setPixmap(pixmap)
