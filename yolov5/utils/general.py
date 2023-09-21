@@ -36,6 +36,17 @@ import torch
 import torchvision
 import yaml
 
+# Import 'ultralytics' package or install if if missing
+try:
+    import ultralytics
+
+    assert hasattr(ultralytics, '__version__')  # verify package is not directory
+except (ImportError, AssertionError):
+    os.system('pip install -U ultralytics')
+    import ultralytics
+
+from ultralytics.utils.checks import check_requirements
+
 from utils import TryExcept, emojis
 from utils.downloads import curl_download, gsutil_getsize
 from utils.metrics import box_iou, fitness
@@ -138,12 +149,12 @@ def set_logging(name=LOGGING_NAME, verbose=True):
             name: {
                 'class': 'logging.StreamHandler',
                 'formatter': name,
-                'level': level,}},
+                'level': level, }},
         'loggers': {
             name: {
                 'level': level,
                 'handlers': [name],
-                'propagate': False,}}})
+                'propagate': False, }}})
 
 
 set_logging(LOGGING_NAME)  # run before defining LOGGER
@@ -370,7 +381,7 @@ def check_git_info(path='.'):
         return {'remote': None, 'branch': None, 'commit': None}
 
 
-def check_python(minimum='3.7.0'):
+def check_python(minimum='3.8.0'):
     # Check current python version vs. required python version
     check_version(platform.python_version(), minimum, name='Python ', hard=True)
 
@@ -385,57 +396,6 @@ def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=Fals
     if verbose and not result:
         LOGGER.warning(s)
     return result
-
-
-@TryExcept()
-def check_requirements(requirements=ROOT.parent / 'requirements.txt', exclude=(), install=True, cmds=''):
-    """
-    Check if installed dependencies meet YOLOv5 requirements and attempt to auto-update if needed.
-
-    Args:
-        requirements (Union[Path, str, List[str]]): Path to a requirements.txt file, a single package requirement as a
-            string, or a list of package requirements as strings.
-        exclude (Tuple[str]): Tuple of package names to exclude from checking.
-        install (bool): If True, attempt to auto-update packages that don't meet requirements.
-        cmds (str): Additional commands to pass to the pip install command when auto-updating.
-
-    Returns:
-        None
-    """
-    prefix = colorstr('red', 'bold', 'requirements:')
-    check_python()  # check python version
-    file = None
-    if isinstance(requirements, Path):  # requirements.txt file
-        file = requirements.resolve()
-        assert file.exists(), f'{prefix} {file} not found, check failed.'
-        with file.open() as f:
-            requirements = [f'{x.name}{x.specifier}' for x in pkg.parse_requirements(f) if x.name not in exclude]
-    elif isinstance(requirements, str):
-        requirements = [requirements]
-
-    s = ''  # console string
-    n = 0  # number of packages updates
-    for r in requirements:
-        try:
-            pkg.require(r)
-        except (pkg.VersionConflict, pkg.DistributionNotFound):  # exception if requirements not met
-            try:  # attempt to import (slower but more accurate)
-                import importlib
-                importlib.import_module(next(pkg.parse_requirements(r)).name)
-            except ImportError:
-                s += f'"{r}" '
-                n += 1
-
-    if s and install and AUTOINSTALL:  # check environment variable
-        LOGGER.info(f"{prefix} YOLOv5 requirement{'s' * (n > 1)} {s}not found, attempting AutoUpdate...")
-        try:
-            assert check_online(), 'AutoUpdate skipped (offline)'
-            LOGGER.info(subprocess.check_output(f'pip install {s} {cmds}', shell=True).decode())
-            s = f"{prefix} {n} package{'s' * (n > 1)} updated per {file or requirements}\n" \
-                f"{prefix} ⚠️ {colorstr('bold', 'Restart runtime or rerun command for updates to take effect')}\n"
-            LOGGER.info(s)
-        except Exception as e:
-            LOGGER.warning(f'{prefix} ❌ {e}')
 
 
 def check_img_size(imgsz, s=32, floor=0):
@@ -466,7 +426,7 @@ def check_imshow(warn=False):
         return False
 
 
-def check_suffix(file='yolov5s.pt', suffix=('.pt',), msg=''):
+def check_suffix(file='yolov5s.pt', suffix=('.pt', ), msg=''):
     # Check file(s) for acceptable suffix
     if file and suffix:
         if isinstance(suffix, str):

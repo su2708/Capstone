@@ -26,6 +26,11 @@ from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
+try:
+    import comet_ml  # must be imported before torch (if installed)
+except ImportError:
+    comet_ml = None
+
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -485,7 +490,7 @@ def main(opt, callbacks=Callbacks()):
     if RANK in {-1, 0}:
         print_args(vars(opt))
         check_git_status()
-        check_requirements()
+        check_requirements(ROOT / 'requirements.txt')
 
     # Resume (from specified or most recent last.pt)
     if opt.resume and not check_comet_resume(opt) and not opt.evolve:
@@ -579,7 +584,7 @@ def main(opt, callbacks=Callbacks()):
                 'gsutil',
                 'cp',
                 f'gs://{opt.bucket}/evolve.csv',
-                str(evolve_csv),])
+                str(evolve_csv), ])
 
         for _ in range(opt.evolve):  # generations to evolve
             if evolve_csv.exists():  # if evolve.csv exists: select best hyps and mutate

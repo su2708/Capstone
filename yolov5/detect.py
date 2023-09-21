@@ -11,7 +11,7 @@ Usage - sources:
                                                      list.txt                        # list of images
                                                      list.streams                    # list of streams
                                                      'path/*.jpg'                    # glob
-                                                     'https://youtu.be/Zgi9g1ksQHc'  # YouTube
+                                                     'https://youtu.be/LNwODJXcvt4'  # YouTube
                                                      'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
 
 Usage - formats:
@@ -29,6 +29,7 @@ Usage - formats:
 """
 
 import argparse
+import csv
 import os
 import platform
 import sys
@@ -42,11 +43,12 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
+from ultralytics.utils.plotting import Annotator, colors, save_one_box
+
 from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
 from utils.general import (LOGGER, Profile, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
                            increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
-from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
 
 
@@ -62,6 +64,7 @@ def run(
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         view_img=False,  # show results
         save_txt=False,  # save results to *.txt
+        save_csv=False,  # save results in CSV format
         save_conf=False,  # save confidences in --save-txt labels
         save_crop=False,  # save cropped prediction boxes
         nosave=False,  # do not save images/videos
@@ -79,7 +82,6 @@ def run(
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
-        area=1
 ):
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
@@ -135,6 +137,18 @@ def run(
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
+        # Define the path for the CSV file
+        csv_path = save_dir / 'predictions.csv'
+
+        # Create or append to the CSV file
+        def write_to_csv(image_name, prediction, confidence):
+            data = {'Image Name': image_name, 'Prediction': prediction, 'Confidence': confidence}
+            with open(csv_path, mode='a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=data.keys())
+                if not csv_path.is_file():
+                    writer.writeheader()
+                writer.writerow(data)
+
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -162,9 +176,16 @@ def run(
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    c = int(cls)  # integer class
+                    label = names[c] if hide_conf else f'{names[c]}'
+                    confidence = float(conf)
+                    confidence_str = f'{confidence:.2f}'
+
+                    if save_csv:
+                        write_to_csv(p.name, label, confidence_str)
+
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
@@ -173,25 +194,11 @@ def run(
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         annotator.box_label(xyxy, label, color=colors(c, True))
-                        
-                        
-                        area = int((abs(xyxy[2] - xyxy[0]) * abs(xyxy[3] - xyxy[1]))/10)  # area of bbox
-                        print("label is:", label,"area is:", area )
-                        #annotator.text((xyxy[2],xyxy[3]), label, txt_color=(255, 255, 255), anchor='top')
-                       
-                        
-            
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                        
-                        
-                   
 
             # Stream results
             im0 = annotator.result()
-                        
-                    
-       
             if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
@@ -216,8 +223,7 @@ def run(
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                         save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))               
-                        
+                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
@@ -245,6 +251,7 @@ def parse_opt():
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
+    parser.add_argument('--save-csv', action='store_true', help='save results in CSV format')
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
@@ -269,7 +276,7 @@ def parse_opt():
 
 
 def main(opt):
-    check_requirements(exclude=('tensorboard', 'thop'))
+    check_requirements(ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
 
