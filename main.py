@@ -1,6 +1,6 @@
 import work_thread as WT
 
-work = WT.WorkThread(WT.model_path)
+work = WT.WorkThread(WT.model_weights)
 
 if __name__ == "__main__":
     WT.image_label.setFixedSize(WT.width, WT.height)

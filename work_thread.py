@@ -20,13 +20,21 @@ adapter_info = {
     }
 }
 
-model_path = 'drowsiness_lite.tflite'
+with open('drowsiness_architecture.json', 'r') as json_file:
+    loaded_model_json = json_file.read()
+# 모델 구조 로드
+model_architecture = tf.keras.models.model_from_json(loaded_model_json)
+
+# 모델 가중치 로드
+model_weights = '/home/pi4/Capstone/drowsiness_lite.tflite'
 
 class WorkThread(QThread):
 
     def __init__(self, model_path):
         super(WorkThread,self).__init__()
-        self.model = tf.keras.models.load_model(model_path)
+        self.model = tf.keras.Sequential(model_architecture.layers)  # 모델 아키텍처 설정
+        self.model_lite = tf.lite.Interpreter(model_path=model_path)
+        self.model_lite.allocate_tensors()
         gp.setwarnings(False)
         gp.setmode(gp.BOARD)
         gp.setup(7, gp.OUT)
