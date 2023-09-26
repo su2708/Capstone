@@ -20,7 +20,7 @@ adapter_info = {
     }
 }
 
-model_path = 'drowsiness.h5'
+model_path = 'drowsiness_lite.tflite'
 
 class WorkThread(QThread):
 

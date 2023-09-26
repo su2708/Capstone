@@ -1,34 +1,46 @@
-import tensorflow as tf
 import cv2
+import numpy as np
+import tensorflow as tf
 
-print('hello')
+# TensorFlow Lite 모델 로드
+interpreter = tf.lite.Interpreter(model_path="drowsiness_lite.tflite")
+interpreter.allocate_tensors()
 
-# 모델 파일('drowsiness.h5') 경로 지정 (문자열로)
-model_path = './drowsiness.h5'
+# 모델 입력 및 출력 텐서 가져오기
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-# 'drowsiness.h5' 파일을 로드
-model = tf.keras.models.load_model(model_path)
-
+# 웹캠에서 영상 가져오기
 cap = cv2.VideoCapture(0)
 
-while cap.isOpened():
-    success, image = cap.read()
-    if not success:
-        print("Ignoring empty camera frame.")
-        continue
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    
+    # 프레임 크기 변경 (모델 입력 크기와 일치하도록)
+    resized_frame = cv2.resize(frame, (input_details[0]['shape'][2], input_details[0]['shape'][1]))
 
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    input_size = (80, 80)
-    image = image = tf.image.resize(image, input_size)
-    image = image / 255.0
-    image = tf.expand_dims(image, axis=0)
+    # 모델 입력 데이터 전처리
+    input_data = np.expand_dims(resized_frame, axis=0)
+    input_data = input_data.astype(np.float32) / 255.0  # 정규화
 
-    predictions = model.predict(image)
-    print(predictions)
+    # 모델 실행
+    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.invoke()
 
-    cv2.imshow("ML test", image)
-    if cv2.waitKey(5) & 0xFF == 27:
+    # 모델 출력 얻기
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+
+    # 출력을 이용한 눈 감김 감지 로직 추가
+    # 예를 들어, output_data를 분석하여 눈 감김 여부를 판단
+
+    # 결과 시각화
+    cv2.imshow('Drowsiness Detection', frame)
+
+    if cv2.waitKey(1) & 0xFF == 27:
         break
 
+# 웹캠 해제 및 OpenCV 창 닫기
 cap.release()
 cv2.destroyAllWindows()
