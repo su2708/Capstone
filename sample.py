@@ -1,57 +1,47 @@
 import sys
-import time
-import typing
-from PyQt5 import QtCore
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout, QPushButton, QWidget
+import cv2
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from Driver_Cam import haarcascade_test
 
-# define Worker Thread class
-class WorkerThread(QThread):
-    # 작업이 완료되었을 때 시그널을 보내기 위한 시그널 객체
-    finished = pyqtSignal()
-    
+class WebcamThread(QThread):
+    image_data = pyqtSignal(QImage)
+
     def run(self):
-        # 시간이 오래 걸리는 작업 수행
-        time.sleep(5)
-        # 작업이 완료되었음을 시그널로 알림
-        self.finished.emit()
-        
-# 메인 윈도우 클래스 정의
-class MainWindow(QDialog):
+        cap = cv2.VideoCapture(0)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to read webcam")
+                break
+
+            rgb_image = haarcascade_test.test(frame)
+            rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = rgb_image.shape
+            bytes_per_line = ch * w
+            qt_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            self.image_data.emit(qt_image)
+
+class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        
-        self.setWindowTitle("QThread example")
-        
+        self.setWindowTitle("Webcam Viewer")
+        self.image_label = QLabel(self)
         layout = QVBoxLayout()
-        self.button = QPushButton("start")
-        
-        self.button.clicked.connect(self.startWorkerThread)
-        layout.addWidget(self.button)
-        
+        layout.addWidget(self.image_label)
         self.setLayout(layout)
-        
-    def startWorkerThread(self):
-        # Worker 스레드 객체 생성
-        self.thread = WorkerThread()
-        
-        # 작업이 완료되면 finished 시그널에 대한 슬롯 연결
-        self.thread.finished.connect(self.workerThreadFinished)
-        
-        # Worker 스레드 시작
+
+        self.thread = WebcamThread()
+        self.thread.image_data.connect(self.update_image)
         self.thread.start()
-        # 버튼 비활성화
-        self.button.setEnabled(False)
-        
-    def workerThreadFinished(self):
-        # 작업이 완료되면 스레드 정리 및 버튼 활성화
-        self.thread.quit()
-        self.thread.wait()
-        self.button.setEnabled(True)
-        print("worker thread finished")
-        
+
+    def update_image(self, image):
+        self.image_label.setPixmap(QPixmap.fromImage(image))
+        self.image_label.setScaledContents(True)
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWindow = MainWindow()
-    mainWindow.show()
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec_())
