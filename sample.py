@@ -1,12 +1,18 @@
 import sys
 import cv2
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 from Driver_Cam import haarcascade_test
 
-class WebcamThread(QThread):
+class WebcamThread(QObject):
     image_data = pyqtSignal(QImage)
+
+    def start(self):
+        self.thread = QThread()
+        self.moveToThread(self.thread)
+        self.thread.started.connect(self.run)
+        self.thread.start()
 
     def run(self):
         cap = cv2.VideoCapture(0)
