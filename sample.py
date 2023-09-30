@@ -40,6 +40,11 @@ class MainWindow(QWidget):
         self.image_label.setPixmap(QPixmap.fromImage(image))
         self.image_label.setScaledContents(True)
 
+    # Esc key를 누르면 카메라 실행 창이 꺼지는 함수
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
