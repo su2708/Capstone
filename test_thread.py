@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
-from PyQt5.QtCore import QThread, Qt
+from PyQt5.QtCore import QThread, Qt, pyqtSignal
+from Driver_Cam import haarcascade_test
 import tensorflow as tf
 import RPi.GPIO as gp
 import time
@@ -29,6 +30,7 @@ model_architecture = tf.keras.models.model_from_json(loaded_model_json)
 model_weights = '/home/pi4/Capstone/drowsiness_lite.tflite'
 
 class WorkThread(QThread):
+    image_data = pyqtSignal(QImage)
 
     def __init__(self, model_path):
         super(WorkThread,self).__init__()
@@ -106,3 +108,22 @@ layout_h = QHBoxLayout()
 layout_v = QVBoxLayout()
 image_label = QLabel()
 image_label2 = QLabel()
+
+work = WorkThread(model_weights)
+
+if __name__ == "__main__":
+    image_label.setFixedSize(width, height)
+    image_label2.setFixedSize(width, height)
+    window.setWindowTitle("Multi Camera Demo")
+    layout_h.addWidget(image_label)    
+    layout_h.addWidget(image_label2)
+    layout_v.addLayout(layout_h,20)
+    window.setLayout(layout_v)
+    window.resize(660, 250)
+
+    work.start()
+    
+    window.show()
+    app.exec()
+    work.quit()
+    picam2.close()
