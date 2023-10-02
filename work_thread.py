@@ -1,14 +1,16 @@
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
-from PyQt5.QtCore import QThread, Qt
+from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal
+from Driver_Cam import haarcascade_test
 import tensorflow as tf
 import RPi.GPIO as gp
 import time
+import sys
 import os
 
-width = 320
-height = 240 
+WIDTH = 320
+HEIGHT = 240 
 
 adapter_info = {  
     "A" : {   
@@ -25,22 +27,44 @@ with open('drowsiness_architecture.json', 'r') as json_file:
 # 모델 구조 로드
 model_architecture = tf.keras.models.model_from_json(loaded_model_json)
 
-# 모델 가중치 로드
-model_weights = '/home/pi4/Capstone/drowsiness_lite.tflite'
-
-class WorkThread(QThread):
-
+# 카메라 캡처 및 이미지 전송을 담당하는 스레드 클래스
+class MultiCamThread(QObject):
+    image_data = pyqtSignal(QImage, str)
+    
     def __init__(self, model_path):
-        super(WorkThread,self).__init__()
-        self.model = tf.keras.Sequential(model_architecture.layers)  # 모델 아키텍처 설정
+        # QObject의 초기화함수 실행
+        super().__init__()
+        
+        # 딥러닝 모델 가져오기
+        self.model = tf.keras.Sequential(model_architecture.layers)
         self.model_lite = tf.lite.Interpreter(model_path=model_path)
         self.model_lite.allocate_tensors()
+        
+        # GPIO setting
         gp.setwarnings(False)
         gp.setmode(gp.BOARD)
         gp.setup(7, gp.OUT)
         gp.setup(11, gp.OUT)
         gp.setup(12, gp.OUT)
+        
+        # picam2 변수를 초기화
+        self.picam2 = None
 
+    def start(self):
+        # QThread 객체 및 스레드 생성
+        self.thread = QThread()
+        
+        # WebCamThread 객체를 QThread 스레드로 이동
+        self.moveToThread(self.thread)
+        
+        # QThread 스레드가 시작하면 run 함수로 연결
+        self.thread.started.connect(self.run)
+
+        # QThread 스레드 시작
+        try:
+            self.thread.start()
+        except Exception as e:
+            print("Exception in thread start: ", str(e))
 
     def select_channel(self,index):
         channel_info = adapter_info.get(index)
@@ -55,12 +79,12 @@ class WorkThread(QThread):
         channel_info = adapter_info.get(index)
         os.system(channel_info["i2c_cmd"]) # i2c write
 
+    # 카메라 캡처 및 이미지 전송
     def run(self):
-        global picam2
-        
         flag = False
 
-        for item in {"A","B"}:
+        # 각 카메라 활성화
+        for item in ["A","B"]:
             try:
                 self.select_channel(item)
                 self.init_i2c(item)
@@ -68,41 +92,79 @@ class WorkThread(QThread):
                 if flag == False:
                     flag = True
                 else :
-                    picam2.close()
+                    self.picam2.close() # 캡처가 완료된 후 Picamera2 객체 종료
                 print("init1 "+ item)
-                picam2 = Picamera2()
-                picam2.configure(picam2.create_still_configuration(main={"size": (320, 240),"format": "BGR888"},buffer_count=2)) 
-                picam2.start()
+                # Picamera2 객체 생성 및 설정 후 시작
+                self.picam2 = Picamera2()
+                self.picam2.configure(self.picam2.create_still_configuration(main={"size": (WIDTH, HEIGHT), "format": "BGR888"}, buffer_count=2))
+                self.picam2.start()
                 time.sleep(2)
-                picam2.capture_array(wait=False)
+                self.picam2.capture_array(wait=False) # 초기화 확인을 위한 캡처
                 time.sleep(0.1)
             except Exception as e:
-                print("except: "+str(e))
+                print("init1: " + item + " error: " + str(e))
 
+        # 실시간 이미지 캡처
         while True:
-            for item in {"A","B"}:
+            for item in ["A","B"]:
                 self.select_channel(item)
-                time.sleep(0.02)
+                time.sleep(0.1) # 화면 업데이트 시간
                 try:
-                    buf = picam2.capture_array()
-                    cvimg = QImage(buf, width, height,QImage.Format_RGB888)
-                    pixmap = QPixmap(cvimg)
-                    if item == 'A':
-                        image_label.setPixmap(pixmap)
-                    elif item == 'B':
-                        image_label2.setPixmap(pixmap)
+                    buf = self.picam2.capture_array() # 실시간 화면 캡처
+                    if item == "A":
+                        cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
+                        self.image_data.emit(cvimg, item)
+                    elif item == "B":
+                        buf = haarcascade_test.test(buf)
+                        cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
+                        self.image_data.emit(cvimg, item)
                 except Exception as e:
                     print("capture_buffer: "+ str(e))
-                    
+
+# PyQt5 위젯으로, MultiCamThread 클래스에서 전달한 이미지를 화면에 표시하는 클래스
 class MultiCamWindow(QWidget):
+    
+    def __init__(self, model_path):
+        # QWidget의 __init__함수 실행
+        super().__init__()
+          
+        # 실행창 설정
+        self.setWindowTitle('Multi Cam test')
+        self.image_label = QLabel(self)
+        self.image_label2 = QLabel(self)
+        self.image_label.setFixedSize(WIDTH, HEIGHT)
+        self.image_label2.setFixedSize(WIDTH, HEIGHT)
+        
+        # 수평 레이아웃 생성 및 위젯 추가
+        layout_h = QHBoxLayout()
+        layout_h.addWidget(self.image_label)
+        layout_h.addWidget(self.image_label2)
+        
+        # 수직 레이아웃 생성 및 수평 레이아웃 추가
+        layout_v = QVBoxLayout()
+        layout_v.addLayout(layout_h)
+        
+        # 위젯의 레이아웃 설정
+        self.setLayout(layout_v)
+        self.resize(660, 250)
+        
+        # MultiCamThread 객체와 스레드 생성
+        self.cam_thread = MultiCamThread(model_path)
+        
+        # image_data 시그널을 슬롯함수와 연결
+        self.cam_thread.image_data.connect(self.update_image)
+        
+        # MultiCamThread 클래스의 start 메서드 실행
+        self.cam_thread.start()
+        
+    # MultiCamThread 객체에서 시그널을 받으면 동작하는 슬롯함수
+    def update_image(self, image, cam_type):
+        if cam_type == "A":
+            self.image_label.setPixmap(QPixmap.fromImage(image))
+        else:
+            self.image_label2.setPixmap(QPixmap.fromImage(image))
+    
     # Esc key를 누르면 카메라 실행 창이 꺼지는 함수
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
             self.close()
-
-app = QApplication([])
-window = MultiCamWindow()
-layout_h = QHBoxLayout()
-layout_v = QVBoxLayout()
-image_label = QLabel()
-image_label2 = QLabel()

@@ -1,21 +1,11 @@
-import test_thread as WT
+from PyQt5.QtWidgets import QApplication
+from test_thread import MultiCamWindow  # your_main_script에는 원래 코드의 모듈 이름이 들어갑니다.
+import sys
 
-work = WT.WorkThread(WT.model_weights)
+model_weights = '/home/pi4/Capstone/drowsiness_lite.tflite'
 
 if __name__ == "__main__":
-    WT.image_label.setFixedSize(WT.width, WT.height)
-    WT.image_label2.setFixedSize(WT.width, WT.height)
-    WT.window.setWindowTitle("Multi Camera Demo")
-    WT.layout_h.addWidget(WT.image_label)    
-    WT.layout_h.addWidget(WT.image_label2)
-    WT.layout_v.addLayout(WT.layout_h,20)
-    WT.window.setLayout(WT.layout_v)
-    WT.window.resize(660, 250)
-
-    work.start()
-    
-    WT.window.show()
-    WT.app.exec()
-    work.quit()
-    WT.picam2.close()
-
+    app = QApplication(sys.argv)
+    window = MultiCamWindow(model_path=model_weights)  # model_weights 변수는 필요에 따라 수정하세요.
+    window.show()
+    sys.exit(app.exec_())
