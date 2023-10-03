@@ -2,11 +2,10 @@ from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWid
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
 from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal
-from Driver_Cam import haarcascade_test
-import tensorflow as tf
+from Driver_Cam.haarcascade_test import test as haar_test
+from Blackbox_Cam.blackbox import detect_objects_in_image as detector
 import RPi.GPIO as gp
 import time
-import sys
 import os
 
 WIDTH = 320
@@ -22,23 +21,13 @@ adapter_info = {
     }
 }
 
-with open('drowsiness_architecture.json', 'r') as json_file:
-    loaded_model_json = json_file.read()
-# 모델 구조 로드
-model_architecture = tf.keras.models.model_from_json(loaded_model_json)
-
 # 카메라 캡처 및 이미지 전송을 담당하는 스레드 클래스
 class MultiCamThread(QObject):
     image_data = pyqtSignal(QImage, str)
     
-    def __init__(self, model_path):
+    def __init__(self):
         # QObject의 초기화함수 실행
         super().__init__()
-        
-        # 딥러닝 모델 가져오기
-        self.model = tf.keras.Sequential(model_architecture.layers)
-        self.model_lite = tf.lite.Interpreter(model_path=model_path)
-        self.model_lite.allocate_tensors()
         
         # GPIO setting
         gp.setwarnings(False)
@@ -112,10 +101,11 @@ class MultiCamThread(QObject):
                 try:
                     buf = self.picam2.capture_array() # 실시간 화면 캡처
                     if item == "A":
+                        buf = detector(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, item)
                     elif item == "B":
-                        buf = haarcascade_test.test(buf)
+                        buf = haar_test(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, item)
                 except Exception as e:
@@ -124,7 +114,7 @@ class MultiCamThread(QObject):
 # PyQt5 위젯으로, MultiCamThread 클래스에서 전달한 이미지를 화면에 표시하는 클래스
 class MultiCamWindow(QWidget):
     
-    def __init__(self, model_path):
+    def __init__(self):
         # QWidget의 __init__함수 실행
         super().__init__()
           
@@ -149,7 +139,7 @@ class MultiCamWindow(QWidget):
         self.resize(660, 250)
         
         # MultiCamThread 객체와 스레드 생성
-        self.cam_thread = MultiCamThread(model_path)
+        self.cam_thread = MultiCamThread()
         
         # image_data 시그널을 슬롯함수와 연결
         self.cam_thread.image_data.connect(self.update_image)
