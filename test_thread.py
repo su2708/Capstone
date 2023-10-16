@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
+from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QWidget
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
 from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal
