@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
+from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QWidget
 from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
 from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal
@@ -10,6 +10,8 @@ import os
 
 WIDTH = 320
 HEIGHT = 240 
+
+CAMERA_LIST = ["A", "B"]
 
 adapter_info = {  
     "A" : {   
@@ -73,16 +75,16 @@ class MultiCamThread(QObject):
         flag = False
 
         # 각 카메라 활성화
-        for item in ["A","B"]:
+        for cam in CAMERA_LIST:
             try:
-                self.select_channel(item)
-                self.init_i2c(item)
+                self.select_channel(cam)
+                self.init_i2c(cam)
                 time.sleep(0.5) 
                 if flag == False:
                     flag = True
                 else :
                     self.picam2.close() # 캡처가 완료된 후 Picamera2 객체 종료
-                print("init1 "+ item)
+                print("init1 "+ cam)
                 # Picamera2 객체 생성 및 설정 후 시작
                 self.picam2 = Picamera2()
                 self.picam2.configure(self.picam2.create_still_configuration(main={"size": (WIDTH, HEIGHT), "format": "BGR888"}, buffer_count=2))
@@ -91,25 +93,45 @@ class MultiCamThread(QObject):
                 self.picam2.capture_array(wait=False) # 초기화 확인을 위한 캡처
                 time.sleep(0.1)
             except Exception as e:
-                print("init1: " + item + " error: " + str(e))
-
+                print("init1: " + cam + " error: " + str(e))
+        
+        # FPS 초기화
+        frame_count = 0
+        start_time = time.time()
+        
         # 실시간 이미지 캡처
         while True:
-            for item in ["A","B"]:
-                self.select_channel(item)
+            for cam in CAMERA_LIST:
+                self.select_channel(cam)
                 time.sleep(0.1) # 화면 업데이트 시간
                 try:
                     buf = self.picam2.capture_array() # 실시간 화면 캡처
-                    if item == "A":
+                    if cam == "A":
                         buf = detector(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
-                        self.image_data.emit(cvimg, item)
-                    elif item == "B":
+                        self.image_data.emit(cvimg, cam)
+                    elif cam == "B":
                         buf = haar_test(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
-                        self.image_data.emit(cvimg, item)
+                        self.image_data.emit(cvimg, cam)
                 except Exception as e:
                     print("capture_buffer: "+ str(e))
+                
+                # 각 프레임마다 시간 측정
+                end_time = time.time()
+                frame_count += 1
+                
+                # 시간 간격 측정
+                time_interval = end_time - start_time
+                
+                # 시간 간격이 1초 이상이면 FPS 계산
+                if time_interval >= 1.0:
+                    fps = frame_count / time_interval
+                    print("FPS: {:.2f}".format(fps))
+                    
+                    # 초기값 재설정
+                    frame_count = 0
+                    start_time = time.time()
 
 # PyQt5 위젯으로, MultiCamThread 클래스에서 전달한 이미지를 화면에 표시하는 클래스
 class MultiCamWindow(QWidget):
@@ -120,15 +142,15 @@ class MultiCamWindow(QWidget):
           
         # 실행창 설정
         self.setWindowTitle('Multi Cam test')
-        self.image_label = QLabel(self)
-        self.image_label2 = QLabel(self)
-        self.image_label.setFixedSize(WIDTH, HEIGHT)
-        self.image_label2.setFixedSize(WIDTH, HEIGHT)
+        self.image_label_A = QLabel(self)
+        self.image_label_B = QLabel(self)
+        self.image_label_A.setFixedSize(WIDTH, HEIGHT)
+        self.image_label_B.setFixedSize(WIDTH, HEIGHT)
         
         # 수평 레이아웃 생성 및 위젯 추가
         layout_h = QHBoxLayout()
-        layout_h.addWidget(self.image_label)
-        layout_h.addWidget(self.image_label2)
+        layout_h.addWidget(self.image_label_A)
+        layout_h.addWidget(self.image_label_B)
         
         # 수직 레이아웃 생성 및 수평 레이아웃 추가
         layout_v = QVBoxLayout()
@@ -150,9 +172,9 @@ class MultiCamWindow(QWidget):
     # MultiCamThread 객체에서 시그널을 받으면 동작하는 슬롯함수
     def update_image(self, image, cam_type):
         if cam_type == "A":
-            self.image_label.setPixmap(QPixmap.fromImage(image))
+            self.image_label_A.setPixmap(QPixmap.fromImage(image))
         else:
-            self.image_label2.setPixmap(QPixmap.fromImage(image))
+            self.image_label_B.setPixmap(QPixmap.fromImage(image))
     
     # Esc key를 누르면 카메라 실행 창이 꺼지는 함수
     def keyPressEvent(self, event):
