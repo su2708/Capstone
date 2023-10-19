@@ -3,13 +3,14 @@ from picamera2 import Picamera2
 from PyQt5.QtGui import QImage,QPixmap
 from PyQt5.QtCore import QObject, QThread, Qt, pyqtSignal
 from Driver_Cam.haarcascade_test import test as haar_test
+from Driver_Cam.drowsiness import detect_drowsiness as drowsiness
 from Blackbox_Cam.blackbox import detect_objects_in_image as detector
 import RPi.GPIO as gp
 import time
 import os
 
 WIDTH = 320
-HEIGHT = 240 
+HEIGHT = 320 
 
 CAMERA_LIST = ["A", "B"]
 
@@ -107,11 +108,11 @@ class MultiCamThread(QObject):
                 try:
                     buf = self.picam2.capture_array() # 실시간 화면 캡처
                     if cam == "A":
-                        buf = detector(buf)
+                        #buf = detector(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, cam)
                     elif cam == "B":
-                        buf = haar_test(buf)
+                        buf = drowsiness(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, cam)
                 except Exception as e:
@@ -158,7 +159,7 @@ class MultiCamWindow(QWidget):
         
         # 위젯의 레이아웃 설정
         self.setLayout(layout_v)
-        self.resize(660, 250)
+        self.resize(WIDTH*2 + 10, HEIGHT+10)
         
         # MultiCamThread 객체와 스레드 생성
         self.cam_thread = MultiCamThread()
