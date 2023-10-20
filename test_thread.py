@@ -112,7 +112,7 @@ class MultiCamThread(QObject):
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, cam)
                     elif cam == "B":
-                        buf = drowsiness(buf)
+                        buf = haar_test(buf)
                         cvimg = QImage(buf, WIDTH, HEIGHT,QImage.Format_RGB888)
                         self.image_data.emit(cvimg, cam)
                 except Exception as e:

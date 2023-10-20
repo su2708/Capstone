@@ -7,6 +7,7 @@ HEIGHT = 320
 
 # TensorFlow Lite 모델 로드
 model_path = "/home/pi4/Capstone/Driver_Cam/drowsiness.tflite"
+# model_path = "/home/pi4/Capstone/Driver_Cam/drowsiness_m.tflite"
 interpreter = tf.lite.Interpreter(model_path)
 interpreter.allocate_tensors()
 
