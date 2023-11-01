@@ -3,7 +3,7 @@ from picamera2 import Picamera2
 
 def main():
     # 웹캠 초기화
-    cam = cv2.VideoCapture(4) # 2 or 4
+    cam = cv2.VideoCapture(0) # 2 or 4
     cam.set(3, 640)
     cam.set(4, 480)
     
