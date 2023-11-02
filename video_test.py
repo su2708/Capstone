@@ -4,8 +4,19 @@ from picamera2 import Picamera2
 
 def main():
     # 웹캠 초기화
-    cam = cv2.VideoCapture(0) # for rpi3
-    #cam = cv2.VideoCapture(4) # 2 or 4 for rpi4
+    cam_num = 0
+    cam = cv2.VideoCapture(cam_num)
+    ret, frame = cam.read()
+    if ret:
+        print("This device is rpi3")
+        cam.release()
+        cam = cv2.VideoCapture(cam_num)
+    elif not ret:
+        print("This device is rpi4")
+        cam.release()
+        cam_num = 4 # 2 or 4
+        cam = cv2.VideoCapture(cam_num)
+
     cam.set(3, 640)
     cam.set(4, 480)
     
