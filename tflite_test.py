@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 # TensorFlow Lite 모델 로드
-interpreter = tf.lite.Interpreter(model_path="drowsiness_lite.tflite")
+interpreter = tf.lite.Interpreter(model_path="Driver_Cam/drowsiness.tflite")
 interpreter.allocate_tensors()
 
 # 모델 입력 및 출력 텐서 가져오기
